@@ -113,6 +113,21 @@
         "salesClosed": { "type": "number" }
       },
       "required": ["views", "clicks", "quotesCount", "salesClosed"]
+    },
+    "Seller": {
+      "title": "Seller",
+      "description": "A parts consultant or vendor associated with a supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "isAuthorized": { "type": "boolean" },
+        "registeredAt": { "type": "string" }
+      },
+      "required": ["id", "supplierId", "name", "email", "phone"]
     }
   },
   "firestore": {
@@ -143,6 +158,10 @@
     "/stats/{statsId}": {
       "schema": { "$ref": "OrderStats" },
       "description": "Analytical dashboard metrics for a supplier"
+    },
+    "/sellers/{sellerId}": {
+      "schema": { "$ref": "Seller" },
+      "description": "Consultants and salespersons for suppliers"
     }
   }
 }

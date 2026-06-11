@@ -488,52 +488,124 @@ export const initializeDatabase = async (): Promise<boolean> => {
     console.log('Validating connection and checking database state...');
     
     // 1. Check to seed Suppliers
-    const suppliersSnap = await getDocs(collection(db, 'suppliers'));
-    if (suppliersSnap.empty) {
+    let suppliersSnap;
+    try {
+      suppliersSnap = await getDocs(collection(db, 'suppliers'));
+    } catch (err) {
+      console.error('Error reading suppliers collection:', err);
+      handleFirestoreError(err, OperationType.GET, 'suppliers');
+    }
+
+    if (suppliersSnap && suppliersSnap.empty) {
       console.log('Database empty! Seeding INITIAL_SUPPLIERS...');
       for (const supplier of INITIAL_SUPPLIERS) {
-        await setDoc(doc(db, 'suppliers', supplier.id), supplier);
+        try {
+          await setDoc(doc(db, 'suppliers', supplier.id), supplier);
+        } catch (err) {
+          console.error(`Error writing supplier ${supplier.id}:`, err);
+          handleFirestoreError(err, OperationType.WRITE, `suppliers/${supplier.id}`);
+        }
       }
     }
 
     // 2. Check to seed Catalog
-    const catalogSnap = await getDocs(collection(db, 'catalog'));
-    if (catalogSnap.empty) {
+    let catalogSnap;
+    try {
+      catalogSnap = await getDocs(collection(db, 'catalog'));
+    } catch (err) {
+      console.error('Error reading catalog collection:', err);
+      handleFirestoreError(err, OperationType.GET, 'catalog');
+    }
+
+    if (catalogSnap && catalogSnap.empty) {
       console.log('Database empty! Seeding INITIAL_CATALOG_ITEMS...');
       for (const item of INITIAL_CATALOG_ITEMS) {
-        await setDoc(doc(db, 'catalog', item.id), item);
+        try {
+          await setDoc(doc(db, 'catalog', item.id), item);
+        } catch (err) {
+          console.error(`Error writing catalog item ${item.id}:`, err);
+          handleFirestoreError(err, OperationType.WRITE, `catalog/${item.id}`);
+        }
       }
     }
 
     // 3. Check to seed Chats
-    const chatsSnap = await getDocs(collection(db, 'chats'));
-    if (chatsSnap.empty) {
+    let chatsSnap;
+    try {
+      chatsSnap = await getDocs(collection(db, 'chats'));
+    } catch (err) {
+      console.error('Error reading chats collection:', err);
+      handleFirestoreError(err, OperationType.GET, 'chats');
+    }
+
+    if (chatsSnap && chatsSnap.empty) {
       console.log('Database empty! Seeding INITIAL_CHATS...');
       for (const chat of INITIAL_CHATS) {
-        await setDoc(doc(db, 'chats', chat.id), chat);
+        try {
+          await setDoc(doc(db, 'chats', chat.id), chat);
+        } catch (err) {
+          console.error(`Error writing chat ${chat.id}:`, err);
+          handleFirestoreError(err, OperationType.WRITE, `chats/${chat.id}`);
+        }
       }
     }
 
     // 4. Check to seed Stats
-    const statsDoc = await getDoc(doc(db, 'stats', 'global_stats'));
-    if (!statsDoc.exists()) {
+    let statsDoc;
+    try {
+      statsDoc = await getDoc(doc(db, 'stats', 'global_stats'));
+    } catch (err) {
+      console.error('Error reading stats/global_stats:', err);
+      handleFirestoreError(err, OperationType.GET, 'stats/global_stats');
+    }
+
+    if (statsDoc && !statsDoc.exists()) {
       console.log('Seeding default stats...');
-      await setDoc(doc(db, 'stats', 'global_stats'), INITIAL_STATS);
+      try {
+        await setDoc(doc(db, 'stats', 'global_stats'), INITIAL_STATS);
+      } catch (err) {
+        console.error('Error writing stats/global_stats:', err);
+        handleFirestoreError(err, OperationType.WRITE, 'stats/global_stats');
+      }
     }
 
     // 5. Check to seed Truck Profile
-    const profileDoc = await getDoc(doc(db, 'truck_profiles', 'default_profile'));
-    if (!profileDoc.exists()) {
+    let profileDoc;
+    try {
+      profileDoc = await getDoc(doc(db, 'truck_profiles', 'default_profile'));
+    } catch (err) {
+      console.error('Error reading truck_profiles/default_profile:', err);
+      handleFirestoreError(err, OperationType.GET, 'truck_profiles/default_profile');
+    }
+
+    if (profileDoc && !profileDoc.exists()) {
       console.log('Seeding default truck profile...');
-      await setDoc(doc(db, 'truck_profiles', 'default_profile'), INITIAL_TRUCK_PROFILE);
+      try {
+        await setDoc(doc(db, 'truck_profiles', 'default_profile'), INITIAL_TRUCK_PROFILE);
+      } catch (err) {
+        console.error('Error writing truck_profiles/default_profile:', err);
+        handleFirestoreError(err, OperationType.WRITE, 'truck_profiles/default_profile');
+      }
     }
 
     // 6. Check to seed Sellers
-    const sellersSnap = await getDocs(collection(db, 'sellers'));
-    if (sellersSnap.empty) {
+    let sellersSnap;
+    try {
+      sellersSnap = await getDocs(collection(db, 'sellers'));
+    } catch (err) {
+      console.error('Error reading sellers collection:', err);
+      handleFirestoreError(err, OperationType.GET, 'sellers');
+    }
+
+    if (sellersSnap && sellersSnap.empty) {
       console.log('Database empty! Seeding INITIAL_SELLERS...');
       for (const seller of INITIAL_SELLERS) {
-        await setDoc(doc(db, 'sellers', seller.id), seller);
+        try {
+          await setDoc(doc(db, 'sellers', seller.id), seller);
+        } catch (err) {
+          console.error(`Error writing seller ${seller.id}:`, err);
+          handleFirestoreError(err, OperationType.WRITE, `sellers/${seller.id}`);
+        }
       }
     }
 
@@ -541,6 +613,10 @@ export const initializeDatabase = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error('Failed to initialize database: ', error);
+    // Let the inner exceptions throw their specific JSON paths, otherwise default to this:
+    if (error instanceof Error && error.message.startsWith('{')) {
+      throw error;
+    }
     try {
       handleFirestoreError(error, OperationType.WRITE, 'initial_seeding');
     } catch {}

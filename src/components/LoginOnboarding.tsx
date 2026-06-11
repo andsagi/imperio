@@ -81,14 +81,17 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
 
     setGoogleLoading(true);
     const provider = new GoogleAuthProvider();
+    provider.addScope('https://www.googleapis.com/auth/contacts');
     
     try {
       // In sandbox frames, signInWithPopup can sometimes fail or be blocked.
       const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      const token = credential?.accessToken || null;
       const user = result.user;
       
       if (user && user.email) {
-        await processGmailSuccess(user.email, user.displayName || 'Usuário Google');
+        await processGmailSuccess(user.email, user.displayName || 'Usuário Google', token);
       }
     } catch (error: any) {
       console.warn('Real Google Auth blocked or failed. Loading sandbox interactive simulator:', error);
@@ -100,7 +103,9 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
   };
 
   // Processing logged Gmail address against roles and database
-  const processGmailSuccess = async (email: string, displayName: string) => {
+  const processGmailSuccess = async (email: string, displayName: string, googleToken?: string | null) => {
+    const extraGoogleData = googleToken ? { googleAccessToken: googleToken } : {};
+    
     if (role === 'seller') {
       // Validate in Firestore if seller exists and is authorized
       try {
@@ -120,7 +125,8 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
               id: 'v1',
               supplierId: 's1',
               supplierName: 'Tietê Diesel Autopeças',
-              email: email
+              email: email,
+              ...extraGoogleData
             });
           } else {
             handleAlert('error', `Acesso Negado: O e-mail (${email}) não está cadastrado como vendedor de nenhum fornecedor. Solicite seu cadastro ao seu painel administrativo.`);
@@ -154,7 +160,8 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
             id: sellerDoc.id,
             supplierId: sellerDoc.supplierId,
             supplierName: supName,
-            email: sellerDoc.email
+            email: sellerDoc.email,
+            ...extraGoogleData
           });
         }
       } catch (e) {
@@ -164,7 +171,8 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
           id: 'v_sandbox',
           supplierId: 's1',
           supplierName: 'Tietê Diesel Autopeças',
-          email: email
+          email: email,
+          ...extraGoogleData
         });
       }
     } else if (role === 'supplier') {
@@ -172,14 +180,16 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
       await completeLogin('supplier', displayName || 'Tietê Diesel Autopeças', {
         cnpj: '12.345.678/0001-99',
         phone: '(11) 98765-4321',
-        email: email
+        email: email,
+        ...extraGoogleData
       });
     } else {
       // Trucker
       await completeLogin('trucker', displayName, {
         truckModel: 'Volvo FH 540 Globetrotter',
         phone: '(11) 99999-9999',
-        email: email
+        email: email,
+        ...extraGoogleData
       });
     }
   };
@@ -192,7 +202,7 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
     let mockDisplayName = simMail.split('@')[0];
     mockDisplayName = mockDisplayName.charAt(0).toUpperCase() + mockDisplayName.slice(1);
     
-    await processGmailSuccess(simMail.trim().toLowerCase(), mockDisplayName);
+    await processGmailSuccess(simMail.trim().toLowerCase(), mockDisplayName, "mock_contacts_token");
   };
 
   // Save Biometrics for future visual seamless logins
@@ -754,7 +764,7 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
         <div className="grid grid-cols-3 gap-2 mt-3">
           <button
             type="button"
-            onClick={() => onLogin('trucker', 'Roberto Motorista', { truckModel: 'Volvo FH 540 Globetrotter', phone: '(11) 99999-9999' })}
+            onClick={() => onLogin('trucker', 'Roberto Motorista', { truckModel: 'Volvo FH 540 Globetrotter', phone: '(11) 99999-9999', googleAccessToken: 'mock_contacts_token' })}
             className="flex flex-col items-center p-2.5 rounded-xl bg-[#202020] border border-neutral-800 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all cursor-pointer group active:scale-[0.97]"
           >
             <Truck className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
@@ -764,7 +774,7 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
 
           <button
             type="button"
-            onClick={() => onLogin('supplier', 'Tietê Diesel Autopeças', { cnpj: '12.345.678/0001-99', phone: '(11) 98765-4321' })}
+            onClick={() => onLogin('supplier', 'Tietê Diesel Autopeças', { cnpj: '12.345.678/0001-99', phone: '(11) 98765-4321', googleAccessToken: 'mock_contacts_token' })}
             className="flex flex-col items-center p-2.5 rounded-xl bg-[#202020] border border-neutral-800 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all cursor-pointer group active:scale-[0.97]"
           >
             <Store className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
@@ -774,7 +784,7 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
 
           <button
             type="button"
-            onClick={() => onLogin('seller', 'Lucas Consultor', { id: 'v1', supplierId: 's1', supplierName: 'Tietê Diesel Autopeças', email: 'lucas@gmail.com' })}
+            onClick={() => onLogin('seller', 'Lucas Consultor', { id: 'v1', supplierId: 's1', supplierName: 'Tietê Diesel Autopeças', email: 'lucas@gmail.com', googleAccessToken: 'mock_contacts_token' })}
             className="flex flex-col items-center p-2.5 rounded-xl bg-[#202020] border border-neutral-800 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all cursor-pointer group active:scale-[0.97]"
           >
             <Key className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform mb-1" />

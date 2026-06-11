@@ -31,6 +31,7 @@ interface SupplierDashboardProps {
   sellerName?: string;
   sellerEmail?: string;
   niche?: 'pesados' | 'passeio' | 'motos';
+  googleToken?: string | null;
 }
 
 // Period math utility helper for supplier traffic analytics
@@ -95,7 +96,8 @@ export default function SupplierDashboard({
   isSeller = false,
   sellerName = '',
   sellerEmail = '',
-  niche = 'pesados'
+  niche = 'pesados',
+  googleToken = null
 }: SupplierDashboardProps) {
   // Find which supplier corresponds to this login session or use a default one like Tietê s1
   const [vendorSupplier, setVendorSupplier] = useState<Supplier | null>(null);
@@ -106,6 +108,100 @@ export default function SupplierDashboard({
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [typedMessage, setTypedMessage] = useState('');
+
+  // Google Contacts CRM States
+  const [googleContacts, setGoogleContacts] = useState<any[]>([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactsError, setContactsError] = useState<string | null>(null);
+  const [leadsList, setLeadsList] = useState<any[]>([]);
+  const [crmMessage, setCrmMessage] = useState<string | null>(null);
+
+  // Load CRM leads memory from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('imperio_crm_leads');
+    if (saved) {
+      try {
+        setLeadsList(JSON.parse(saved));
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+  }, []);
+
+  const handleSyncContacts = async () => {
+    setContactsLoading(true);
+    setContactsError(null);
+    try {
+      if (googleToken && googleToken !== 'mock_contacts_token') {
+        const response = await fetch('https://people.googleapis.com/v1/people/me/connections?personFields=names,emailAddresses,phoneNumbers', {
+          headers: { Authorization: `Bearer ${googleToken}` }
+        });
+        if (!response.ok) {
+          throw new Error('Erro ao obter contatos no Google API.');
+        }
+        const data = await response.json();
+        const list = (data.connections || []).map((conn: any) => {
+          const name = conn.names?.[0]?.displayName || 'Prospect Sem Nome';
+          const phone = conn.phoneNumbers?.[0]?.value || conn.phoneNumbers?.[0]?.canonicalForm || 'Sem Telefone';
+          const email = conn.emailAddresses?.[0]?.value || 'Sem Email';
+          return { name, phone, email };
+        });
+        setGoogleContacts(list);
+      } else {
+        // Mock fallback CRM contacts
+        await new Promise(resolve => setTimeout(resolve, 800));
+        const MOCK_CRM_CONTACTS = [
+          { name: 'Geraldo Transportes Ltda', phone: '(11) 98011-2299', email: 'geraldo.frota@gmail.com' },
+          { name: 'Carlos Motorista Scania', phone: '(11) 99344-8877', email: 'carlinhosscania@hotmail.com' },
+          { name: 'Transportadora Serra Azul', phone: '(11) 96111-4433', email: 'compras@serraazul.com.br' },
+          { name: 'Augusto Fretes Pesados', phone: '(11) 97722-1100', email: 'augustofretes@gmail.com' },
+          { name: 'Marcos Volvo FM', phone: '(11) 98111-5544', email: 'marcosvolvo@gmail.com' }
+        ];
+        setGoogleContacts(MOCK_CRM_CONTACTS);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setContactsError(err.message || 'Erro ao sincronizar com o Google.');
+    } finally {
+      setContactsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (googleToken) {
+      handleSyncContacts();
+    }
+  }, [googleToken]);
+
+  const toggleLeadStatus = (contact: any) => {
+    let updated: any[] = [];
+    const isLeadExist = leadsList.some(l => l.phone === contact.phone);
+    if (isLeadExist) {
+      updated = leadsList.filter(l => l.phone !== contact.phone);
+    } else {
+      updated = [...leadsList, { ...contact, addedAt: new Date().toLocaleDateString('pt-BR'), status: 'Prospecção' }];
+    }
+    setLeadsList(updated);
+    localStorage.setItem('imperio_crm_leads', JSON.stringify(updated));
+  };
+
+  const updateLeadPipStatus = (phone: string, nextStatus: string) => {
+    const updated = leadsList.map(l => {
+      if (l.phone === phone) {
+        return { ...l, status: nextStatus };
+      }
+      return l;
+    });
+    setLeadsList(updated);
+    localStorage.setItem('imperio_crm_leads', JSON.stringify(updated));
+  };
+
+  const handleSendOfferToContact = (name: string) => {
+    setCrmMessage(`Cotação de boas-vindas e link do catálogo do Império enviados para ${name}!`);
+    setTimeout(() => {
+      setCrmMessage(null);
+    }, 4000);
+  };
 
   // Seller management states (Admin only)
   const [sellers, setSellers] = useState<Seller[]>([]);
@@ -1038,6 +1134,146 @@ export default function SupplierDashboard({
                     );
                   });
                 })()}
+              </div>
+            </div>
+
+            {/* Google Contacts CRM CRM Card */}
+            <div className="bg-[#1E1E1E] border border-neutral-800 rounded-xl p-5 space-y-5" id="crm-lead-synchronizer-card">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-neutral-800 pb-3">
+                <div className="flex items-center space-x-2.5">
+                  <Phone className="text-amber-500 w-5 h-5 shrink-0" />
+                  <div>
+                    <h3 className="font-extrabold text-white text-base">Sincronizador de Leads & Carteira de Clientes</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5 font-medium">Importe contatos da sua conta Google para gerenciar leads comerciais e enviar cotações direcionadas.</p>
+                  </div>
+                </div>
+                
+                <button
+                  type="button"
+                  onClick={handleSyncContacts}
+                  disabled={contactsLoading}
+                  className="bg-amber-500 hover:bg-amber-600 active:scale-[0.98] disabled:opacity-50 text-black font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center space-x-1.5 border border-amber-400/25"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>{contactsLoading ? 'Sincronizando...' : 'Sincronizar Leads'}</span>
+                </button>
+              </div>
+
+              {crmMessage && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded-lg text-xs font-semibold">
+                  {crmMessage}
+                </div>
+              )}
+
+              {contactsError && (
+                <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-xs font-semibold">
+                  {contactsError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                
+                {/* Left side: Synced Contacts */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center space-x-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    <span>Contatos Sincronizados da Agenda ({googleContacts.length})</span>
+                  </h4>
+
+                  {googleContacts.length === 0 ? (
+                    <div className="bg-[#151515] p-6 rounded-xl border border-neutral-850 text-center space-y-2">
+                      <p className="text-slate-500 text-xs text-center">Sua agenda do Google está vazia ou ainda não foi sincronizada.</p>
+                      <button
+                        type="button"
+                        onClick={handleSyncContacts}
+                        className="text-amber-500 hover:underline text-xs font-bold cursor-pointer"
+                      >
+                        Clique em "Sincronizar Leads" para iniciar.
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                      {googleContacts.map((contact, index) => {
+                        const inCRM = leadsList.some(l => l.phone === contact.phone);
+                        return (
+                          <div key={index} className="flex justify-between items-center p-2.5 rounded-lg bg-[#151515] border border-neutral-850 text-xs hover:border-amber-500/10 transition-all">
+                            <div>
+                              <p className="font-extrabold text-white">{contact.name}</p>
+                              <p className="text-[10px] text-slate-500">{contact.phone} {contact.email && `| ${contact.email}`}</p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleLeadStatus(contact)}
+                              className={`text-[9px] font-black px-2 py-1 rounded transition-colors cursor-pointer active:scale-95 ${
+                                inCRM 
+                                  ? 'bg-amber-500 text-black' 
+                                  : 'bg-neutral-800 text-slate-300 hover:bg-neutral-750'
+                              }`}
+                            >
+                              {inCRM ? '✓ No CRM' : '+ CRM'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right side: Active Leads Pipeline */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider flex items-center space-x-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>Pipeline Comercial CRM ({leadsList.length})</span>
+                  </h4>
+
+                  {leadsList.length === 0 ? (
+                    <div className="bg-[#151515] p-6 rounded-xl border border-[#2d2d2d] text-center text-slate-500 text-xs py-10 leading-relaxed">
+                      Nenhum lead importado para prospecção ainda.<br/>Clique em <strong>"+ CRM"</strong> na lista de contatos para organizar sua carteira de vendas.
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
+                      {leadsList.map((lead, index) => {
+                        return (
+                          <div key={index} className="p-2.5 rounded-lg bg-[#151515] border border-neutral-850 text-xs space-y-2">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-extrabold text-white">{lead.name}</p>
+                                <p className="text-[9px] text-slate-500">{lead.phone}</p>
+                              </div>
+                              <span className="text-[9px] text-slate-500 bg-[#1E1E1E] px-1.5 py-0.5 rounded border border-neutral-800">
+                                Importado: {lead.addedAt}
+                              </span>
+                            </div>
+
+                            <div className="flex justify-between items-center bg-[#1D1D1D] p-1.5 rounded border border-neutral-850">
+                              <div className="flex items-center space-x-1">
+                                <label className="text-[10px] text-slate-400 font-bold">Estágio:</label>
+                                <select
+                                  value={lead.status}
+                                  onChange={(e) => updateLeadPipStatus(lead.phone, e.target.value)}
+                                  className="bg-[#151515] border border-neutral-800 text-[10px] font-extrabold text-[#FF8C00] px-1 py-0.5 rounded cursor-pointer focus:outline-none"
+                                >
+                                  <option value="Prospecção">Prospecção</option>
+                                  <option value="Negociação">Negociação</option>
+                                  <option value="Fidelizado">Fidelizado</option>
+                                </select>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSendOfferToContact(lead.name)}
+                                className="bg-amber-500/10 hover:bg-amber-500/25 text-[#FF8C00] text-[10px] font-black px-2 py-1 rounded transition-colors cursor-pointer active:scale-95"
+                              >
+                                Enviar Catálogo
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
 

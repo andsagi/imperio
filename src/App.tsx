@@ -28,6 +28,7 @@ export default function App() {
   const [phone, setPhone] = useState('(11) 99999-9999');
   const [truckModel, setTruckModel] = useState('Volvo FH 540 Globetrotter');
   const [sellerInfo, setSellerInfo] = useState<{ id: string; supplierId: string; name: string; email: string } | null>(null);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
   
   // Persistence states
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -83,6 +84,9 @@ export default function App() {
   const handleLogin = (userRole: 'trucker' | 'supplier' | 'seller', name: string, extraData?: any) => {
     setUsername(name);
     setRole(userRole);
+    if (extraData && extraData.googleAccessToken) {
+      setGoogleToken(extraData.googleAccessToken);
+    }
     if (userRole === 'seller' && extraData) {
       setSellerInfo({
         id: extraData.id,
@@ -125,6 +129,7 @@ export default function App() {
     setRole('onboarding');
     setSellerInfo(null);
     setNiche(null);
+    setGoogleToken(null);
   };
 
   return (
@@ -304,6 +309,7 @@ export default function App() {
                 setSuppliers={setSuppliers}
                 catalogItems={catalogItems}
                 niche={niche}
+                googleToken={googleToken}
               />
             </motion.div>
           )}
@@ -328,6 +334,7 @@ export default function App() {
                 sellerName={sellerInfo?.name}
                 sellerEmail={sellerInfo?.email}
                 niche={niche}
+                googleToken={googleToken}
               />
             </motion.div>
           )}

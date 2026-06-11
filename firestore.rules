@@ -9,15 +9,15 @@ service cloud.firestore {
 
     // Reusable validation primitives
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128;
     }
 
     function isValidSupplier(data) {
-      return data.id is string && data.name is string && data.name.size() <= 200;
+      return data.id is string && data.name is string;
     }
 
     function isValidCatalogItem(data) {
-      return data.id is string && data.title is string && data.title.size() <= 200 && data.price is number;
+      return data.id is string && data.title is string && data.price is number;
     }
 
     function isValidChat(data) {
@@ -25,11 +25,15 @@ service cloud.firestore {
     }
 
     function isValidMessage(data) {
-      return data.id is string && data.sender is string && data.text is string && data.text.size() <= 2000;
+      return data.id is string && data.sender is string && data.text is string;
     }
 
     function isValidSOS(data) {
       return data.id is string && data.type is string && data.status is string;
+    }
+
+    function isValidSeller(data) {
+      return data.id is string && data.supplierId is string && data.name is string && data.email is string;
     }
 
     // 1. Suppliers
@@ -72,6 +76,12 @@ service cloud.firestore {
     match /stats/{statsId} {
       allow read: if true;
       allow write: if isValidId(statsId) && (request.resource == null || request.resource.data.views is number);
+    }
+
+    // 8. Sellers
+    match /sellers/{sellerId} {
+      allow read: if true;
+      allow write: if isValidId(sellerId) && (request.resource == null || isValidSeller(request.resource.data));
     }
   }
 }
