@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;605;700;800;900&family=Space+Grotesk:wght@400;500;600;705;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
+  --font-display: "Outfit", sans-serif;
   
   --color-[#FF8C00]: #FF8C00;
   --color-[#121212]: #121212;
@@ -13,9 +13,14 @@
 
 /* Custom styles for Sophisticated Dark theme */
 body {
-  background-color: #121212;
+  background-color: #0E0E0E;
   color: #F8FAFC;
   font-family: "Inter", sans-serif;
+}
+
+/* Custom typographic and glassmorphism helpers */
+.font-display {
+  font-family: "Outfit", "Inter", sans-serif;
 }
 
 /* Scrollbar customizations */
@@ -24,10 +29,10 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #121212;
+  background: #0E0E0E;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: #252525;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -42,12 +47,12 @@ input:focus, select:focus, textarea:focus {
 
 /* Premium utility animations and custom hover states */
 .premium-glow {
-  box-shadow: 0 4px 20px -2px rgba(255, 140, 0, 0.12);
+  box-shadow: 0 4px 20px -2px rgba(255, 140, 0, 0.12), 0 0 15px rgba(255, 140, 0, 0.03);
 }
 
 .premium-card {
-  background-color: #1E1E1E;
-  border: 1px solid #2A2A2A;
+  background-color: #161616;
+  border: 1px solid #252525;
   border-radius: 1rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -55,4 +60,12 @@ input:focus, select:focus, textarea:focus {
 .premium-card:hover {
   border-color: #FF8C00;
   box-shadow: 0 4px 24px -4px rgba(255, 140, 0, 0.15);
+}
+
+/* Crown brand text metallic reflection reflection */
+.metallic-text {
+  background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 30%, #CBD5E1 50%, #94A3B8 75%, #E2E8F0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.1);
 }

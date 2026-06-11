@@ -306,7 +306,7 @@ export default function ChatModal({
                           </div>
                           <p className="text-xs text-white leading-relaxed">{msg.text}</p>
                           <div className="bg-[#2C1F10] p-2 rounded border border-[#FF8C00]/20 flex justify-between items-center text-xs">
-                            <span className="text-slate-400 font-semibold font-mono">Oferta do Caminhoneiro</span>
+                            <span className="text-slate-400 font-semibold font-mono">Oferta do Motorista</span>
                             <span className="text-amber-400 font-black">R$ {msg.offerPrice?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                           </div>
                           

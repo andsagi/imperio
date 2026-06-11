@@ -13,6 +13,7 @@ import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Seller } from '../types';
+import ImperioLogo from './ImperioLogo';
 
 interface LoginOnboardingProps {
   onLogin: (role: 'trucker' | 'supplier' | 'seller', username: string, extraData?: any) => void;
@@ -20,6 +21,8 @@ interface LoginOnboardingProps {
 
 export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
   const [role, setRole] = useState<'trucker' | 'supplier' | 'seller' | null>(null);
+  const [mainRole, setMainRole] = useState<'trucker' | 'company' | null>(null);
+  const [companyType, setCompanyType] = useState<'owner' | 'seller' | null>(null);
   
   // Form fields
   const [username, setUsername] = useState('');
@@ -359,96 +362,130 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
         className="w-full max-w-md bg-[#1E1E1E] border border-neutral-800 rounded-2xl p-6 md:p-8 shadow-2xl premium-glow z-10"
       >
         {/* Brand Header */}
-        <div className="flex flex-col items-center text-center space-y-2 mb-6" id="login-brand-header">
-          <div className="relative w-16 h-16 bg-gradient-to-br from-[#FF8C00] to-[#E67E00] rounded-xl flex items-center justify-center shadow-lg shadow-[#FF8C00]/30 border border-amber-500/20 transition-transform duration-300">
-            <div className="absolute -top-3 bg-black/90 px-1.5 py-0.5 rounded-full border border-amber-500/40 shadow-md">
-              <Crown className="w-4 h-4 text-amber-400 fill-amber-400 stroke-[1.8]" />
-            </div>
-            <Truck className="w-9 h-9 text-black stroke-[2.3]" />
-          </div>
-
-          <h1 className="text-2xl md:text-3xl font-black mt-3 select-none flex flex-col items-center leading-none tracking-tight">
-            <span className="bg-gradient-to-r from-[#FF8C00] via-amber-400 to-[#FF8C00] bg-clip-text text-transparent font-black tracking-widest text-shadow-glow">
-              IMPÉRIO
-            </span>
-            <span className="text-white text-base md:text-lg font-black mt-1 tracking-widest opacity-95">
-              PESADOS
-            </span>
-          </h1>
-
-          <p className="text-[#FF8C00] text-[9px] font-black uppercase tracking-widest bg-[#FF8C00]/10 px-3 py-1 rounded-full border border-[#FF8C00]/20 flex items-center gap-1">
-            <Crown className="w-3 h-3 text-[#FF8C00] fill-[#FF8C00]/20 shrink-0" />
-            <span>O Poder Imperial da sua Frota</span>
+        <div className="flex flex-col items-center text-center mb-6" id="login-brand-header">
+          <ImperioLogo size="lg" variant="full" className="mb-2" />
+          
+          <p className="text-amber-400 text-[10px] font-black uppercase tracking-widest bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20 flex items-center gap-1.5">
+            <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-500/20 shrink-0" />
+            <span>Peças, Serviços e Socorro Imediato</span>
           </p>
         </div>
 
         {step === 1 ? (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div className="text-center">
               <h2 className="text-sm font-bold text-slate-200">Como você deseja acessar a plataforma?</h2>
               <p className="text-slate-400 text-xs mt-1">Selecione seu perfil abaixo para continuar.</p>
             </div>
 
-            {/* Role Cards (3 options) */}
-            <div className="grid grid-cols-1 gap-3" id="role-selections">
+            {/* Role Cards (Only 2 Main Options) */}
+            <div className="grid grid-cols-1 gap-3.5" id="role-selections">
+              {/* Option 1: Trucker */}
               <button
                 id="select-trucker-btn"
                 type="button"
-                onClick={() => setRole('trucker')}
-                className={`flex items-center p-3 rounded-xl border transition-all text-left group ${
-                  role === 'trucker'
+                onClick={() => {
+                  setMainRole('trucker');
+                  setRole('trucker');
+                  setCompanyType(null);
+                }}
+                className={`flex items-center p-3 rounded-xl border transition-all text-left group cursor-pointer ${
+                  mainRole === 'trucker'
                     ? 'bg-[#FF8C00]/10 border-[#FF8C00] text-white shadow-lg'
                     : 'bg-[#1A1A1A] border-neutral-800 text-slate-300 hover:border-neutral-700'
                 }`}
               >
-                <div className={`p-2 rounded-lg mr-3 ${role === 'trucker' ? 'bg-[#FF8C00] text-black' : 'bg-[#2A2A2A] text-[#FF8C00]'}`}>
+                <div className={`p-2 rounded-lg mr-3 shrink-0 ${mainRole === 'trucker' ? 'bg-[#FF8C00] text-black' : 'bg-[#2A2A2A] text-[#FF8C00]'}`}>
                   <Truck className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-extrabold text-xs md:text-sm group-hover:text-[#FF8C00] transition-colors leading-none">Sou Caminhoneiro</h3>
-                  <p className="text-[11px] text-slate-450 mt-1 lines-clamp-2">Busque peças, chame socorro e compre barato na rodovia de graça.</p>
+                  <h3 className="font-extrabold text-xs md:text-sm group-hover:text-[#FF8C00] transition-colors leading-none">Sou Motorista</h3>
+                  <p className="text-[11px] text-slate-450 mt-1 leading-normal">Busque autopeças, chame socorro e negocie na rodovia de graça.</p>
                 </div>
               </button>
 
+              {/* Option 2: Company */}
               <button
-                id="select-supplier-btn"
+                id="select-company-btn"
                 type="button"
-                onClick={() => setRole('supplier')}
-                className={`flex items-center p-3 rounded-xl border transition-all text-left group ${
-                  role === 'supplier'
+                onClick={() => {
+                  setMainRole('company');
+                  setRole(null);
+                  setCompanyType(null);
+                }}
+                className={`flex items-center p-3 rounded-xl border transition-all text-left group cursor-pointer ${
+                  mainRole === 'company'
                     ? 'bg-[#FF8C00]/10 border-[#FF8C00] text-white shadow-lg'
                     : 'bg-[#1A1A1A] border-neutral-800 text-slate-300 hover:border-neutral-700'
                 }`}
               >
-                <div className={`p-2 rounded-lg mr-3 ${role === 'supplier' ? 'bg-[#FF8C00] text-black' : 'bg-[#2A2A2A] text-[#FF8C00]'}`}>
+                <div className={`p-2 rounded-lg mr-3 shrink-0 ${mainRole === 'company' ? 'bg-[#FF8C00] text-black' : 'bg-[#2A2A2A] text-[#FF8C00]'}`}>
                   <Store className="w-5 h-5 stroke-[2]" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-extrabold text-xs md:text-sm group-hover:text-[#FF8C00] transition-colors leading-none">Sou Fornecedor / Anunciante</h3>
-                  <p className="text-[11px] text-slate-450 mt-1 lines-clamp-2">Crie seu catálogo de varejo, receba leads e gerencie equipes de vendas.</p>
-                </div>
-              </button>
-
-              {/* NEW SELLER ROLE */}
-              <button
-                id="select-seller-btn"
-                type="button"
-                onClick={() => setRole('seller')}
-                className={`flex items-center p-3 rounded-xl border transition-all text-left group ${
-                  role === 'seller'
-                    ? 'bg-[#FF8C00]/10 border-[#FF8C00] text-white shadow-lg'
-                    : 'bg-[#1A1A1A] border-neutral-800 text-slate-300 hover:border-neutral-700'
-                }`}
-              >
-                <div className={`p-2 rounded-lg mr-3 ${role === 'seller' ? 'bg-[#FF8C00] text-black' : 'bg-[#2A2A2A] text-[#FF8C00]'}`}>
-                  <Key className="w-5 h-5 stroke-[2]" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-extrabold text-xs md:text-sm group-hover:text-[#FF8C00] transition-colors leading-none">Sou Vendedor / Consultor</h3>
-                  <p className="text-[11px] text-slate-450 mt-1 lines-clamp-2">Consulte cotações de caminhoneiros e responda propostas em nome da loja.</p>
+                  <h3 className="font-extrabold text-xs md:text-sm group-hover:text-[#FF8C00] transition-colors leading-none">Sou Empresa / Fornecedor</h3>
+                  <p className="text-[11px] text-slate-450 mt-1 leading-normal">Crie seu catálogo, receba cotações e gerencie sua equipe de vendas.</p>
                 </div>
               </button>
             </div>
+
+            {/* Nested Sub-Role choice for Company */}
+            <AnimatePresence>
+              {mainRole === 'company' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-[#151515] border border-neutral-800/80 rounded-xl p-4 space-y-3 mt-1 shadow-inner text-left"
+                >
+                  <p className="text-[10px] font-black uppercase text-amber-500 tracking-widest flex items-center gap-1">
+                    <Crown className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Selecione sua função comercial nesta Empresa:</span>
+                  </p>
+                  
+                  <div className="grid grid-cols-1 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCompanyType('owner');
+                        setRole('supplier');
+                      }}
+                      className={`flex items-start p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        companyType === 'owner'
+                          ? 'bg-[#FF8C00]/15 border-[#FF8C00] text-white shadow-md'
+                          : 'bg-[#1C1C1C] border-neutral-800 text-slate-300 hover:border-neutral-750'
+                      }`}
+                    >
+                      <Crown className={`w-4 h-4 mt-0.5 mr-2.5 shrink-0 ${companyType === 'owner' ? 'text-amber-400' : 'text-slate-500'}`} />
+                      <div>
+                        <h4 className="text-xs font-black leading-tight">Proprietário ou Sócio da Empresa</h4>
+                        <p className="text-[10.5px] text-slate-400 mt-1 leading-normal">Acesso administrativo completo: cadastro de peças, dados da loja e relatórios financeiros.</p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCompanyType('seller');
+                        setRole('seller');
+                      }}
+                      className={`flex items-start p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                        companyType === 'seller'
+                          ? 'bg-[#FF8C00]/15 border-[#FF8C00] text-white shadow-md'
+                          : 'bg-[#1C1C1C] border-neutral-800 text-slate-300 hover:border-neutral-750'
+                      }`}
+                    >
+                      <User className={`w-4 h-4 mt-0.5 mr-2.5 shrink-0 ${companyType === 'seller' ? 'text-amber-400' : 'text-slate-500'}`} />
+                      <div>
+                        <h4 className="text-xs font-black leading-tight">Vendedor / Consultor Comercial</h4>
+                        <p className="text-[10.5px] text-slate-400 mt-1 leading-normal">Acesso exclusivo ao chat para responder leads, enviar orçamentos rápidos e fechar vendas.</p>
+                      </div>
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {bioProfile && (
               <button
@@ -471,7 +508,9 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
                   : 'bg-neutral-800 text-slate-500 cursor-not-allowed'
               }`}
             >
-              <span>Continuar com {role === 'seller' ? 'Acesso Vendedor' : 'Cadastro'}</span>
+              <span>
+                {role === 'seller' ? 'Avançar como Vendedor' : role === 'supplier' ? 'Avançar como Proprietário' : 'Avançar com Cadastro'}
+              </span>
               <ArrowRight className="w-4 h-4 stroke-[3.5]" />
             </button>
           </div>
@@ -481,14 +520,19 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
               <h3 className="text-xs font-black text-slate-200 uppercase tracking-widest flex items-center space-x-2">
                 <User className="text-[#FF8C00] w-4 h-4" />
                 <span>
-                  {role === 'trucker' && 'Perfil Caminhoneiro'}
-                  {role === 'supplier' && 'Perfil Fornecedor'}
+                  {role === 'trucker' && 'Perfil Motorista'}
+                  {role === 'supplier' && 'Perfil Proprietário / Sócio'}
                   {role === 'seller' && 'Vendedor Autorizado'}
                 </span>
               </h3>
               <button 
-                onClick={() => setStep(1)} 
-                className="text-[10px] text-orange-400 font-bold hover:underline"
+                onClick={() => {
+                  setStep(1);
+                  setRole(null);
+                  setMainRole(null);
+                  setCompanyType(null);
+                }} 
+                className="text-[10px] text-orange-400 font-bold hover:underline cursor-pointer"
               >
                 Mudar papel
               </button>
@@ -691,6 +735,53 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
             </form>
           </div>
         )}
+      </motion.div>
+
+      {/* Quick Demo Bypass Panel */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="w-full max-w-md mt-6 bg-[#161616]/95 border border-dashed border-amber-500/25 rounded-2xl p-4 text-center z-10"
+      >
+        <span className="text-[10px] bg-amber-500/10 text-amber-500 font-extrabold uppercase px-2.5 py-1 rounded-full border border-amber-500/20 tracking-widest">
+          🔄 Ambiente Integrado de Homologação (Auditoria)
+        </span>
+        <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+          Clique em qualquer perfil abaixo para simular login imediato e auditar seus respectivos painéis:
+        </p>
+        
+        <div className="grid grid-cols-3 gap-2 mt-3">
+          <button
+            type="button"
+            onClick={() => onLogin('trucker', 'Roberto Motorista', { truckModel: 'Volvo FH 540 Globetrotter', phone: '(11) 99999-9999' })}
+            className="flex flex-col items-center p-2.5 rounded-xl bg-[#202020] border border-neutral-800 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all cursor-pointer group active:scale-[0.97]"
+          >
+            <Truck className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
+            <span className="text-[9.5px] font-bold leading-tight">1. Motorista</span>
+            <span className="text-[8.5px] text-slate-500 mt-0.5 leading-none font-medium">Veículo</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onLogin('supplier', 'Tietê Diesel Autopeças', { cnpj: '12.345.678/0001-99', phone: '(11) 98765-4321' })}
+            className="flex flex-col items-center p-2.5 rounded-xl bg-[#202020] border border-neutral-800 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all cursor-pointer group active:scale-[0.97]"
+          >
+            <Store className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
+            <span className="text-[9.5px] font-bold leading-tight">2. Proprietário</span>
+            <span className="text-[8.5px] text-slate-500 mt-0.5 leading-none">Empresa</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onLogin('seller', 'Lucas Consultor', { id: 'v1', supplierId: 's1', supplierName: 'Tietê Diesel Autopeças', email: 'lucas@gmail.com' })}
+            className="flex flex-col items-center p-2.5 rounded-xl bg-[#202020] border border-neutral-800 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all cursor-pointer group active:scale-[0.97]"
+          >
+            <Key className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
+            <span className="text-[9.5px] font-bold leading-tight">3. Vendedor</span>
+            <span className="text-[8.5px] text-slate-500 mt-0.5 leading-none">Consultor</span>
+          </button>
+        </div>
       </motion.div>
 
       {/* BIOMETRIC SCANNING OVERLAY MODAL */}

@@ -13,6 +13,7 @@ import TruckerHome from './components/TruckerHome';
 import SupplierDashboard from './components/SupplierDashboard';
 import SOSModal from './components/SOSModal';
 import NicheSelector from './components/NicheSelector';
+import ImperioLogo from './components/ImperioLogo';
 
 // Data layers
 import { Supplier, CatalogItem } from './types';
@@ -139,19 +140,17 @@ export default function App() {
               niche === 'motos' ? 'bg-rose-500' :
               'bg-amber-500'
             }`} />
-            <div className="flex items-center space-x-1.5">
-              <Crown className={`w-3.5 h-3.5 shrink-0 ${
-                niche === 'passeio' ? 'text-emerald-400 fill-emerald-400' :
-                niche === 'motos' ? 'text-rose-500 fill-rose-500' :
-                'text-amber-400 fill-amber-400'
-              }`} />
-              <span className={`font-extrabold uppercase tracking-widest text-[10px] ${
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 flex items-center justify-center">
+                <ImperioLogo size="sm" variant="icon" />
+              </div>
+              <span className={`font-black uppercase tracking-widest text-[11px] ${
                 niche === 'passeio' ? 'text-emerald-400' :
                 niche === 'motos' ? 'text-rose-500' :
                 'text-amber-500'
               }`}>
-                <strong className="text-white font-black">IMPÉRIO</strong>{' '}
-                {niche ? niche.toUpperCase() : 'MULTIMARCAS'}
+                <span className="text-white font-black mr-1">IMPÉRIO</span>
+                {niche ? niche.toUpperCase() : ''}
               </span>
             </div>
           </div>
@@ -214,7 +213,7 @@ export default function App() {
                 >
                   {niche === 'motos' ? <Bike className="w-3.5 h-3.5" /> : niche === 'passeio' ? <Car className="w-3.5 h-3.5" /> : <Truck className="w-3.5 h-3.5" />}
                   <span>
-                    {niche === 'motos' ? 'Ver Piloto' : niche === 'passeio' ? 'Ver Motorista' : 'Ver Caminhoneiro'}
+                    {niche === 'motos' ? 'Ver Piloto' : 'Ver Motorista'}
                   </span>
                 </button>
 

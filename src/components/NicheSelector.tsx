@@ -12,7 +12,7 @@ export default function NicheSelector({ userName, onSelect, currentNiche }: Nich
   const niches = [
     {
       id: 'pesados' as const,
-      title: 'Império Pesados',
+      title: 'Segmento Pesados',
       icon: <Truck className="w-8 h-8 text-amber-500" />,
       badge: 'Carga & Logística',
       desc: 'Caminhões pesados, cavalos mecânicos, carretas e frotas de grande porte. SOS de rodovia e peças diesel.',
@@ -25,7 +25,7 @@ export default function NicheSelector({ userName, onSelect, currentNiche }: Nich
     },
     {
       id: 'passeio' as const,
-      title: 'Império Passeio',
+      title: 'Segmento Passeio',
       icon: <Car className="w-8 h-8 text-emerald-400" />,
       badge: 'Carros & SUVs',
       desc: 'Carros de passeio, SUVs, utilitários, sedãs e hatches. Manutenção rápida, autopeças e lubrificantes recomendados.',
@@ -38,7 +38,7 @@ export default function NicheSelector({ userName, onSelect, currentNiche }: Nich
     },
     {
       id: 'motos' as const,
-      title: 'Império Motos',
+      title: 'Segmento Motos',
       icon: <Bike className="w-8 h-8 text-rose-500" />,
       badge: 'Duas Rodas',
       desc: 'Motocicletas de baixa, média e alta cilindrada, scooters e delivery. Peças de alta performance e SOS mecânico rápido.',
@@ -114,7 +114,7 @@ export default function NicheSelector({ userName, onSelect, currentNiche }: Nich
           </h3>
 
           <p className="text-xs text-slate-400 max-w-lg mt-2 leading-relaxed">
-            Uma marca unificada onde a <strong>engrenagem sextavada</strong> e a <strong>coroa imperial</strong> representam a soberania em autopeças e socorro imediato, cobrindo com excelência idêntica caminhoneiros (Pesados), motoristas (Passeio) e pilotos (Motos).
+            Uma marca unificada onde a <strong>engrenagem sextavada</strong> e a <strong>coroa imperial</strong> representam a soberania em autopeças e socorro imediato, cobrindo com excelência idêntica motoristas (Pesados), motoristas (Passeio) e pilotos (Motos).
           </p>
         </div>
 

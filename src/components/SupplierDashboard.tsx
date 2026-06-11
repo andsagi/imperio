@@ -576,7 +576,7 @@ export default function SupplierDashboard({
                       <div>
                         <p className="font-extrabold text-white">Você está ONLINE para chamados urgentes!</p>
                         <p className="text-slate-400 mt-0.5 leading-relaxed">
-                          Seu estabelecimento aparece em destaque e no topo do mapa de cobertura dos motoristas na rodovia para chamados rápidos. Caminhoneiros que sofrerem panes ou precisarem de suporte emergencial de peças, guincho, borracharia ou mecânica podem te contatar imediatamente.
+                          Seu estabelecimento aparece em destaque e no topo do mapa de cobertura dos motoristas na rodovia para chamados rápidos. Motoristas que sofrerem panes ou precisarem de suporte emergencial de peças, guincho, borracharia ou mecânica podem te contatar imediatamente.
                         </p>
                       </div>
                     </>
@@ -586,7 +586,7 @@ export default function SupplierDashboard({
                       <div>
                         <p className="font-extrabold text-white">Você está OFFLINE para chamados de emergência.</p>
                         <p className="text-slate-400 mt-0.5 leading-relaxed">
-                          Sua empresa não aparecerá no topo do radar nem receberá as solicitações rápidas de SOS para pane na estrada. Os caminhoneiros só poderão solicitar orçamentos regulares fora de plantão.
+                          Sua empresa não aparecerá no topo do radar nem receberá as solicitações rápidas de SOS para pane na estrada. Os motoristas só poderão solicitar orçamentos regulares fora de plantão.
                         </p>
                       </div>
                     </>
@@ -939,7 +939,7 @@ export default function SupplierDashboard({
                   <div className="bg-[#151515] p-3 rounded-lg border border-neutral-850 space-y-2">
                     <p className="text-[11px] font-black text-amber-400">Eficiência Alta no Lead!</p>
                     <p className="text-[10px] text-slate-400 leading-relaxed">
-                      Sua taxa de clique para cotação está acima de <strong>20%</strong>. Os caminhoneiros demonstram grande confiança em sua distribuidora.
+                      Sua taxa de clique para cotação está acima de <strong>20%</strong>. Os motoristas demonstram grande confiança em sua distribuidora.
                     </p>
                   </div>
 

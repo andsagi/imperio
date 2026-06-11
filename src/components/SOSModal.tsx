@@ -67,12 +67,12 @@ export default function SOSModal({ onClose, suppliers, truckerName, truckModel }
       setChatMessages([
         {
           sender: 'supplier',
-          text: `🚨 [ALERTA DE EMERGÊNCIA ACEITO] Olá ${truckerName}! Meu nome é Rodrigo, despachante da ${provider.name}. Recebemos seu pedido de SOS pelo Império Pesados.`,
+          text: `🚨 [ALERTA DE EMERGÊNCIA ACEITO] Olá ${truckerName}! Meu nome é Rodrigo, despachante da ${provider.name}. Recebemos seu pedido de SOS pelo Império.`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         },
         {
           sender: 'supplier',
-          text: `Já identificamos que você está com o caminhão ${truckModel} com pane de [${selectedEmergency}]. O mecânico de plantão já foi acionado e está saindo com o guincho / ferramentaria de estrada. Aguarde no local seguro!`,
+          text: `Já identificamos que você está com o veículo / equipamento cadastrado com sinistro de [${selectedEmergency}]. O profissional de plantão já foi acionado e está se deslocando. Aguarde em um local seguro!`,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);

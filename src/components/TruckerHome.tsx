@@ -681,7 +681,7 @@ export default function TruckerHome({
                       </button>
 
                       <a
-                        href={`https://wa.me/${selectedSupplier.whatsappNumber}?text=Olá! Vi sua loja ${selectedSupplier.name} no app Império Pesados. Preciso de Orçamento!`}
+                        href={`https://wa.me/${selectedSupplier.whatsappNumber}?text=Olá! Vi sua loja ${selectedSupplier.name} no app Império. Preciso de Orçamento!`}
                         target="_blank"
                         rel="noreferrer"
                         className="py-3.5 px-4 bg-[#25D366] hover:bg-[#20ba56] text-white rounded-xl text-center flex items-center justify-center transition-all cursor-pointer shadow-lg shadow-emerald-500/10"
@@ -1004,7 +1004,7 @@ export default function TruckerHome({
               <div className="flex items-center justify-between border-b border-slate-850 pb-3">
                 <div className="flex items-center space-x-2.5">
                   <User className="text-orange-500 w-5 h-5 shrink-0" />
-                  <h3 className="font-extrabold text-white text-base">Perfil do Caminhoneiro</h3>
+                  <h3 className="font-extrabold text-white text-base">Perfil do Motorista</h3>
                 </div>
                 <button
                   type="button"
@@ -1018,7 +1018,7 @@ export default function TruckerHome({
               {!editTruck ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4" id="truck-spec-card">
                   <div className="bg-[#1C1C1C] p-3 rounded-xl border border-slate-850">
-                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-medium">Caminhão</span>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-medium">Veículo / Chassi</span>
                     <span className="text-white font-extrabold text-sm block mt-0.5">{truck.brand} {truck.model}</span>
                   </div>
                   <div className="bg-[#1C1C1C] p-3 rounded-xl border border-slate-850">
@@ -1079,7 +1079,7 @@ export default function TruckerHome({
                   <Wrench className="text-orange-500 w-4 h-4" />
                   <span>Próxima Parada - Alertas Preventivos</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">Manutenção baseada na rodagem do chassi do caminhoneiro</p>
+                <p className="text-xs text-slate-500 mt-0.5">Manutenção baseada na quilometragem rodada do veículo</p>
               </div>
 
               <div className="space-y-4">
