@@ -35,6 +35,7 @@ interface SupplierDashboardProps {
   sellerEmail?: string;
   niche?: 'pesados' | 'passeio' | 'motos';
   googleToken?: string | null;
+  onDeleteAccount?: () => void;
 }
 
 // Period math utility helper for supplier traffic analytics
@@ -102,7 +103,8 @@ export default function SupplierDashboard({
   sellerName = '',
   sellerEmail = '',
   niche = 'pesados',
-  googleToken = null
+  googleToken = null,
+  onDeleteAccount
 }: SupplierDashboardProps) {
   // Find which supplier corresponds to this login session or use a default one like Tietê s1
   const [vendorSupplier, setVendorSupplier] = useState<Supplier | null>(null);
@@ -1320,6 +1322,61 @@ export default function SupplierDashboard({
                 <Download className="w-4 h-4" />
                 <span>Baixar Plano (.PDF)</span>
               </button>
+            </div>
+
+            {/* Compliance, LGPD Laws and Store policies */}
+            <div className="bg-[#141414] border border-slate-800 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center space-x-2 border-b border-neutral-850 pb-3">
+                <ShieldCheck className="text-emerald-500 w-5.5 h-5.5 shrink-0" />
+                <div>
+                  <h3 className="font-extrabold text-white text-sm">Privacidade, LGPD e Transparência</h3>
+                  <p className="text-[10px] text-slate-500">Controles de conformidade em conformidade com as regras da Google Play e iOS App Store</p>
+                </div>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                Os dados cadastrais de sua autopeças/oficina e o acervo de produtos publicados no catálogo em nossa plataforma operam em total conformidade com a <strong className="text-white">Lei Geral de Proteção de Dados (LGPD - Lei Nº 13.709)</strong>. Seus dados de tráfego, cliques e conversões são confidenciais e protegidos por restrição de escopo.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const event = new CustomEvent('open-legal-modal', { detail: { tab: 'terms' } });
+                    window.dispatchEvent(event);
+                  }}
+                  className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold rounded-lg text-xs transition-colors cursor-pointer text-center"
+                >
+                  Visualizar Termos de Uso
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const event = new CustomEvent('open-legal-modal', { detail: { tab: 'privacy' } });
+                    window.dispatchEvent(event);
+                  }}
+                  className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold rounded-lg text-xs transition-colors cursor-pointer text-center"
+                >
+                  Visualizar Política de Privacidade
+                </button>
+              </div>
+
+              {onDeleteAccount && (
+                <div className="border-t border-slate-850 pt-4 mt-2 space-y-3">
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black text-red-500 uppercase tracking-wider">Zona de Exclusão de Conta Comercial</h4>
+                    <p className="text-[11px] text-slate-500 leading-normal">
+                      Exclua permanentemente sua conta, registro comercial da loja, vendedores autorizados, chats e remova todos os produtos publicados por você do ecossistema. Essa operação removerá todos os dados do banco de dados na nuvem (Firestore) imediatamente e de forma irreversível.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onDeleteAccount}
+                    className="w-full py-2.5 bg-red-950 hover:bg-red-900 border border-red-800 text-red-400 hover:text-red-300 text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer transition-colors"
+                  >
+                    Excluir e revogar conta comercial permanentemente
+                  </button>
+                </div>
+              )}
             </div>
 
           </div>

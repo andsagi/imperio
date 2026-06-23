@@ -756,3 +756,44 @@ export const resetToDefaults = (): void => {
   setDoc(doc(db, 'truck_profiles', 'default_profile'), INITIAL_TRUCK_PROFILE).catch(() => {});
 };
 
+// Compliance: Account deletion to meet Apple and Google App Store mandates
+export const deleteUserAccountFromDB = async (nameOrId: string, role: 'trucker' | 'supplier' | 'seller'): Promise<void> => {
+  try {
+    if (role === 'supplier' || role === 'seller') {
+      const currentSuppliers = loadSuppliers();
+      const matches = currentSuppliers.filter(s => s.id === nameOrId || s.name.toLowerCase() === nameOrId.toLowerCase());
+      for (const s of matches) {
+        // Delete supplier from Firestore
+        await deleteDoc(doc(db, 'suppliers', s.id));
+        
+        // Delete elements from catalogs
+        const items = loadCatalogItems();
+        const myItems = items.filter(item => item.supplierId === s.id);
+        for (const item of myItems) {
+          await deleteDoc(doc(db, 'catalog', item.id));
+        }
+        
+        // Remove from local cache
+        const remainingSuppliers = currentSuppliers.filter(su => su.id !== s.id);
+        setStorageItem('suppliers', remainingSuppliers);
+        
+        const remainingItems = items.filter(item => item.supplierId !== s.id);
+        setStorageItem('catalog', remainingItems);
+      }
+    } else {
+      // Clear all local database cache for trucker
+      localStorage.removeItem('imperio_pesados_truck_profile');
+      localStorage.removeItem('imperio_pesados_sos_requests');
+      localStorage.removeItem('imperio_pesados_chats');
+      
+      const userKey = nameOrId.trim().toLowerCase();
+      localStorage.removeItem(`imperio_niche_${userKey}`);
+      localStorage.removeItem('imperio_pesados_biometric_profile');
+    }
+  } catch (error) {
+    console.error('Failed to execute compliant account deletion:', error);
+    throw error;
+  }
+};
+
+

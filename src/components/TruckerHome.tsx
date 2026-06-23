@@ -31,6 +31,7 @@ interface TruckerHomeProps {
   onAddReview: (review: Review) => void;
   niche?: 'pesados' | 'passeio' | 'motos';
   googleToken?: string | null;
+  onDeleteAccount?: () => void;
 }
 
 export default function TruckerHome({ 
@@ -44,7 +45,8 @@ export default function TruckerHome({
   reviews,
   onAddReview,
   niche = 'pesados',
-  googleToken = null
+  googleToken = null,
+  onDeleteAccount
 }: TruckerHomeProps) {
   const [activeTab, setActiveTab] = useState<'inicio' | 'pecas' | 'chat' | 'ranking' | 'perfil'>('inicio');
   const [selectedZoomPhoto, setSelectedZoomPhoto] = useState<string | null>(null);
@@ -1781,6 +1783,58 @@ export default function TruckerHome({
                 </div>
 
               </div>
+            </div>
+
+            {/* LGPD Compliance & Store guidelines controls */}
+            <div className="bg-[#141414] border border-slate-800 rounded-2xl p-5 space-y-4">
+              <div className="flex items-center space-x-2 border-b border-slate-850 pb-3">
+                <ShieldCheck className="text-emerald-500 w-5 h-5 shrink-0" />
+                <h3 className="font-extrabold text-white text-sm">Privacidade e Lei Geral de Proteção de Dados (LGPD)</h3>
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed font-semibold">
+                Suas informações de navegação, solicitações de SOS e dados cadastrais salvos de forma local ou sincronizados em nosso sistema estão em total conformidade com a legislação brasileira <strong className="text-white">Lei Geral de Proteção de Dados (LGPD - Lei Nº 13.709)</strong>. Seus dados cadastrais ficam salvos em servidores seguros protegidos por criptografia de ponta.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const event = new CustomEvent('open-legal-modal', { detail: { tab: 'terms' } });
+                    window.dispatchEvent(event);
+                  }}
+                  className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold rounded-lg text-xs transition-colors cursor-pointer text-center"
+                >
+                  Visualizar Termos de Uso
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const event = new CustomEvent('open-legal-modal', { detail: { tab: 'privacy' } });
+                    window.dispatchEvent(event);
+                  }}
+                  className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold rounded-lg text-xs transition-colors cursor-pointer text-center"
+                >
+                  Visualizar Política de Privacidade
+                </button>
+              </div>
+
+              {onDeleteAccount && (
+                <div className="border-t border-slate-850 pt-4 mt-2 space-y-3">
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black text-red-500 uppercase tracking-wider">Zona de Exclusão de Conta</h4>
+                    <p className="text-[11px] text-slate-500 leading-normal">
+                      Exclua permanentemente sua conta, dados mecânicos do veículo, solicitações de SOS anteriores e limpe todos os vestígios do dispositivo e dos servidores na nuvem (Firestore) conforme as diretrizes obrigatórias de exclusão de dados do usuário das lojas de aplicativos Google Play e iOS App Store.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onDeleteAccount}
+                    className="w-full py-2.5 bg-red-950 hover:bg-red-900 border border-red-800 text-red-400 hover:text-red-300 text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer transition-colors"
+                  >
+                    Excluir minha conta e dados permanentemente
+                  </button>
+                </div>
+              )}
             </div>
             
           </div>

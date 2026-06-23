@@ -14,6 +14,7 @@ import { auth, db } from '../firebase';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { Seller } from '../types';
 import ImperioLogo from './ImperioLogo';
+import LegalConsentModal from './LegalConsentModal';
 
 // CPF and CNPJ Validation for Brazilian Legislation compliance
 export function validateCPF(cpf: string): boolean {
@@ -106,6 +107,11 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
   const [role, setRole] = useState<'trucker' | 'supplier' | 'seller' | null>(null);
   const [mainRole, setMainRole] = useState<'trucker' | 'company' | null>(null);
   const [companyType, setCompanyType] = useState<'owner' | 'seller' | null>(null);
+
+  // Compliance: states to manage legal models and LGPD consent
+  const [legalOpen, setLegalOpen] = useState(false);
+  const [legalTab, setLegalTab] = useState<'terms' | 'privacy'>('terms');
+  const [consentChecked, setConsentChecked] = useState(false);
   
   // Form fields
   const [username, setUsername] = useState('');
@@ -149,6 +155,10 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
 
   const handleNext = () => {
     if (!role) return;
+    if (!consentChecked) {
+      handleAlert('warn', 'Para continuar, você precisa ler e aceitar os Termos de Uso e a Política de Privacidade (conforme LGPD).');
+      return;
+    }
     setStep(2);
   };
 
@@ -605,6 +615,46 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
                 <span>Entrar por Biometria Gravada</span>
               </button>
             )}
+
+            {/* Compliance: Explicit LGPD & Store guidelines consent check */}
+            <div className="bg-black/30 border border-neutral-850 p-3 rounded-xl flex items-start gap-2.5 text-left mb-1.5">
+              <input
+                id="checkbox-privacy-accept"
+                type="checkbox"
+                checked={consentChecked}
+                onChange={(e) => setConsentChecked(e.target.checked)}
+                className="mt-0.5 rounded text-[#FF8C00] focus:ring-[#FF8C00] border-neutral-800 cursor-pointer h-3.5 w-3.5 accent-[#FF8C00] shrink-0"
+              />
+              <div className="cursor-pointer" onClick={() => setConsentChecked(!consentChecked)}>
+                <p className="text-[10px] text-slate-400 leading-normal select-text">
+                  Declaro que li e concordo com os{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLegalTab('terms');
+                      setLegalOpen(true);
+                    }}
+                    className="text-[#FF8C00] hover:underline hover:text-orange-400 font-bold focus:outline-none cursor-pointer"
+                  >
+                    Termos de Uso
+                  </button>{' '}
+                  e a{' '}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLegalTab('privacy');
+                      setLegalOpen(true);
+                    }}
+                    className="text-[#FF8C00] hover:underline hover:text-orange-400 font-bold focus:outline-none cursor-pointer"
+                  >
+                    Política de Privacidade
+                  </button>{' '}
+                  esta plataforma opera em estrito acordo com as normas da <strong className="text-white font-medium">LGPD (Lei Geral de Proteção de Dados)</strong>.
+                </p>
+              </div>
+            </div>
 
             <button
               id="onboarding-next-step-btn"
@@ -1101,6 +1151,13 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Compliance Legal Consent Modals Trigger overlay */}
+      <LegalConsentModal
+        isOpen={legalOpen}
+        onClose={() => setLegalOpen(false)}
+        defaultTab={legalTab}
+      />
     </div>
   );
 }

@@ -14,10 +14,11 @@ import SupplierDashboard from './components/SupplierDashboard';
 import SOSModal from './components/SOSModal';
 import NicheSelector from './components/NicheSelector';
 import ImperioLogo from './components/ImperioLogo';
+import LegalConsentModal from './components/LegalConsentModal';
 
 // Data layers
 import { Supplier, CatalogItem, Review } from './types';
-import { loadSuppliers, saveSuppliers, loadCatalogItems, saveCatalogItems, loadReviews, saveReviews, resetToDefaults, initializeDatabase } from './mockData';
+import { loadSuppliers, saveSuppliers, loadCatalogItems, saveCatalogItems, loadReviews, saveReviews, resetToDefaults, initializeDatabase, deleteUserAccountFromDB } from './mockData';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -27,6 +28,24 @@ export default function App() {
   const [username, setUsername] = useState('Roberto da Silva');
   const [phone, setPhone] = useState('(11) 99999-9999');
   const [truckModel, setTruckModel] = useState('Volvo FH 540 Globetrotter');
+
+  // Compliance: Global state for terms/privacy modals after login
+  const [globalLegalOpen, setGlobalLegalOpen] = useState(false);
+  const [globalLegalTab, setGlobalLegalTab] = useState<'terms' | 'privacy'>('terms');
+
+  useEffect(() => {
+    const handleOpenLegal = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        setGlobalLegalTab(customEvent.detail.tab || 'terms');
+        setGlobalLegalOpen(true);
+      }
+    };
+    window.addEventListener('open-legal-modal', handleOpenLegal);
+    return () => {
+      window.removeEventListener('open-legal-modal', handleOpenLegal);
+    };
+  }, []);
   const [sellerInfo, setSellerInfo] = useState<{ id: string; supplierId: string; name: string; email: string } | null>(null);
   const [googleToken, setGoogleToken] = useState<string | null>(null);
   
@@ -138,6 +157,18 @@ export default function App() {
     if (confirm('Deseja redefinir os dados para os valores padrão de fábrica? Isso limpará qualquer item cadastrado recém-adicionado.')) {
       resetToDefaults();
       window.location.reload();
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (confirm('ATENÇÃO: Deseja realmente excluir permanentemente sua conta e todos os dados associados a ela? Esta operação é irreversível e obedece as diretrizes da LGPD (Lei Geral de Proteção de Dados) exigidas para publicação na Google Play e App Store.')) {
+      try {
+        await deleteUserAccountFromDB(username, role as 'trucker' | 'supplier' | 'seller');
+        alert('Sua conta e dados foram excluídos com sucesso do banco de dados (Firestore) e do armazenamento local.');
+        handleLogout();
+      } catch (err) {
+        alert('Erro ao excluir conta. Por favor, tente novamente mais tarde.');
+      }
     }
   };
 
@@ -353,6 +384,7 @@ export default function App() {
                 onAddReview={handleAddReview}
                 niche={niche}
                 googleToken={googleToken}
+                onDeleteAccount={handleDeleteAccount}
               />
             </motion.div>
           )}
@@ -380,6 +412,7 @@ export default function App() {
                 sellerEmail={sellerInfo?.email}
                 niche={niche}
                 googleToken={googleToken}
+                onDeleteAccount={handleDeleteAccount}
               />
             </motion.div>
           )}
@@ -399,6 +432,13 @@ export default function App() {
           />
         )}
       </AnimatePresence>
+
+      {/* Global Compliance Legal Consent overlay */}
+      <LegalConsentModal
+        isOpen={globalLegalOpen}
+        onClose={() => setGlobalLegalOpen(false)}
+        defaultTab={globalLegalTab}
+      />
     </div>
   );
 }
