@@ -7,7 +7,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, MapPin, Phone, MessageSquare, AlertTriangle, Truck, 
   Wrench, Battery, Fuel, Settings, AlertCircle, ShoppingCart, 
-  Send, User, Calendar, Star, CheckCircle, Package, ArrowLeft, ShieldCheck, Crown
+  Send, User, Calendar, Star, CheckCircle, Package, ArrowLeft, ShieldCheck, Crown,
+  Mic, MicOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Supplier, CatalogItem, Chat, TruckProfile, Message } from '../types';
@@ -16,6 +17,7 @@ import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 import CoverageMap from './CoverageMap';
 import ChatModal from './ChatModal';
+import ImperioLogo from './ImperioLogo';
 
 interface TruckerHomeProps {
   userName: string;
@@ -65,6 +67,82 @@ export default function TruckerHome({
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [compatibilityFilter, setCompatibilityFilter] = useState('todos');
+
+  // Voice Speech Recognition States & Refs
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = React.useRef<any>(null);
+
+  const startVoiceSearch = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Seu navegador não possui suporte nativo para o Reconhecimento de Voz do navegador.');
+      return;
+    }
+
+    try {
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = 'pt-BR';
+
+      rec.onstart = () => {
+        setIsListening(true);
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      rec.onerror = (e: any) => {
+        console.error('Erro de reconhecimento de voz:', e.error);
+        setIsListening(false);
+      };
+
+      rec.onresult = (event: any) => {
+        const text = event.results[0][0].transcript;
+        if (text) {
+          const cleanText = text.trim().replace(/\.$/, '');
+          setSearchQuery(cleanText);
+        }
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (err) {
+      console.error('Erro ao iniciar reconhecimento de voz:', err);
+      setIsListening(false);
+    }
+  };
+
+  const stopVoiceSearch = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        console.warn('Erro ao interromper reconhecimento de voz:', err);
+      }
+    }
+    setIsListening(false);
+  };
+
+  const handleToggleVoiceSearch = () => {
+    if (isListening) {
+      stopVoiceSearch();
+    } else {
+      startVoiceSearch();
+    }
+  };
+
+  // Auto clean-up
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (e) {}
+      }
+    };
+  }, []);
 
   // Chats state loaded from mockData and persists to localStorage
   const [chats, setChats] = useState<Chat[]>([]);
@@ -243,6 +321,13 @@ export default function TruckerHome({
     return matchesCategory && matchesSearch && matchesDistance;
   });
 
+  // Sort suppliers so that those with isOnline: true always appear at the top of the list
+  const orderedSuppliers = [...filteredSuppliers].sort((a, b) => {
+    if (a.isOnline && !b.isOnline) return -1;
+    if (!a.isOnline && b.isOnline) return 1;
+    return 0; // maintain original distance sorting relative stability
+  });
+
   // Filter parts search
   const filteredCatalogItems = catalogItems.filter(item => {
     // Check niche matching first
@@ -368,24 +453,21 @@ export default function TruckerHome({
       <header className="bg-[#1A1A1A] border-b border-neutral-800 py-4 px-4 sticky top-0 z-30 shadow-lg shrink-0">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            {/* Crown Overlaid Truck Icon */}
-            <div className="relative w-10 h-10 bg-gradient-to-br from-[#FF8C00] to-amber-500 rounded-xl flex items-center justify-center border border-amber-500/20 shadow-md">
-              <div className="absolute -top-1.5 bg-black/95 px-1 py-0.5 rounded-full border border-amber-500/40 shadow-sm">
-                <Crown className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-              </div>
-              <Truck className="w-5 h-5 text-black stroke-[2.5]" />
+            {/* Imperio Brand Logo */}
+            <div className="w-10 h-10 bg-[#141414] rounded-xl flex items-center justify-center border border-neutral-800 shadow-md p-1 shrink-0">
+              <ImperioLogo size="sm" variant="icon" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-[#FF8C00] text-[10px] font-black uppercase tracking-wider">Olá, parceiro</span>
-                <span className="bg-[#FF8C00]/10 px-1.5 py-0.5 rounded-full border border-[#FF8C00]/20 text-[8px] text-[#FF8C00] font-extrabold uppercase flex items-center gap-0.5">
+                <span className="text-[#FF8C00] text-[10px] font-black uppercase tracking-wider font-display">Olá, parceiro</span>
+                <span className="bg-[#FF8C00]/10 px-1.5 py-0.5 rounded-full border border-[#FF8C00]/20 text-[8px] text-[#FF8C00] font-extrabold uppercase flex items-center gap-0.5 font-display">
                   <Crown className="w-2 h-2 text-[#FF8C00] fill-[#FF8C00]" />
                   <span>IMPÉRIO VIP</span>
                 </span>
               </div>
               {/* Highlight IMPÉRIO in the header text */}
-              <h1 className="text-sm font-extrabold text-slate-300 leading-none mt-1">
-                {userName} <span className="text-slate-500 font-medium">|</span> <span className="bg-gradient-to-r from-[#FF8C00] via-amber-400 to-[#FF8C00] bg-clip-text text-transparent font-black tracking-wider text-xs">IMPÉRIO</span>
+              <h1 className="text-sm font-extrabold text-slate-300 leading-none mt-1 font-display">
+                {userName} <span className="text-slate-500 font-medium font-sans">|</span> <span className="text-white font-black tracking-wider text-xs font-display">IMPÉRIO</span>
               </h1>
             </div>
           </div>
@@ -592,55 +674,74 @@ export default function TruckerHome({
                   </div>
                 )}
 
-                {filteredSuppliers.map((supplier) => (
+                {orderedSuppliers.map((supplier) => (
                   <motion.div
                     key={supplier.id}
                     layoutId={`card-${supplier.id}`}
                     onClick={() => setSelectedSupplier(supplier)}
-                    className="p-4 bg-[#1E1E1E] border border-neutral-800 hover:border-[#FF8C00]/40 rounded-2xl transition-all cursor-pointer flex justify-between gap-4 items-start group hover:shadow-2xl hover:shadow-[#FF8C00]/5"
+                    className="p-4 bg-[#1E1E1E] border border-neutral-800 hover:border-[#FF8C00]/40 rounded-2xl transition-all cursor-pointer flex justify-between gap-4 items-stretch group hover:shadow-2xl hover:shadow-[#FF8C00]/5"
                   >
-                    <div className="flex items-start space-x-3.5">
+                    <div className="flex items-start space-x-3.5 flex-1">
                       <div className="p-3 bg-[#1A1A1A] border border-neutral-800 rounded-xl text-[#FF8C00] group-hover:bg-[#FF8C00] group-hover:text-black group-hover:border-[#FF8C00] transition-all duration-200 shrink-0">
                         <Package className="w-6 h-6 stroke-[2]" />
                       </div>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="flex items-center flex-wrap gap-2">
-                          <h4 className="font-black text-white group-hover:text-[#FF8C00] transition-colors text-sm md:text-base leading-tight">{supplier.name}</h4>
+                          <h4 className="font-black text-white group-hover:text-[#FF8C00] transition-colors text-sm md:text-base leading-tight truncate">{supplier.name}</h4>
                           {supplier.isVerified && (
-                            <span className="bg-[#FF8C00]/10 border border-[#FF8C00]/20 text-[#FF8C00] font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded">
+                            <span className="bg-[#FF8C00]/10 border border-[#FF8C00]/20 text-[#FF8C00] font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0">
                               Selo VIP
                             </span>
                           )}
                           {supplier.isFoundingPartner && (
-                            <span className="bg-purple-500/10 border border-purple-500/20 text-purple-400 font-extrabold text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded">
+                            <span className="bg-purple-500/10 border border-purple-500/20 text-purple-400 font-extrabold text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0">
                               Fundador
                             </span>
                           )}
                         </div>
 
-                        <p className="text-xs text-slate-400 mt-1 font-medium">{supplier.address}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{supplier.specialty}</p>
+                        <p className="text-xs text-slate-400 mt-1 font-medium truncate">{supplier.address}</p>
+                        <p className="text-xs text-slate-500 mt-0.5 truncate">{supplier.specialty}</p>
 
                         <div className="flex items-center space-x-3 mt-2.5">
-                          <div className="flex items-center text-amber-500 text-xs font-bold">
+                          <div className="flex items-center text-amber-500 text-xs font-bold shrink-0">
                             <Star className="w-3.5 h-3.5 fill-amber-500 mr-1 shrink-0" />
                             <span>{supplier.rating} ({supplier.reviewsCount})</span>
                           </div>
-                          <span className="text-slate-700 text-xs">•</span>
-                          <span className="text-xs text-[#FF8C00] font-black">{supplier.distance} km de você</span>
+                          <span className="text-slate-700 text-xs shrink-0">•</span>
+                          <span className="text-xs text-[#FF8C00] font-black shrink-0">{supplier.distance} km de você</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="shrink-0 flex flex-col items-end space-y-1.5">
+                    <div className="shrink-0 flex flex-col justify-between items-end space-y-2 select-none">
                       <span className={`flex items-center space-x-1.5 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full border ${
                         supplier.isOnline
-                          ? 'text-green-500 bg-green-500/5 border-green-500/20'
+                          ? 'text-green-500 bg-green-500/5 border-green-500/20 animate-pulse'
                           : 'text-slate-500 bg-slate-500/5 border-slate-500/20'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${supplier.isOnline ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
-                        <span>{supplier.isOnline ? 'Atendente Online' : 'Offline'}</span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${supplier.isOnline ? 'bg-green-500' : 'bg-slate-500'}`} />
+                        <span>{supplier.isOnline ? 'Online' : 'Offline'}</span>
                       </span>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setChatModalSupplier(supplier);
+                          setChatModalInitialMsg('');
+                          setIsChatModalOpen(true);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl font-extrabold text-[10px] md:text-xs uppercase tracking-wider flex items-center justify-center space-x-1 transition-all duration-200 outline-none border cursor-pointer active:scale-95 ${
+                          supplier.isOnline
+                            ? 'bg-[#FF8C00] border-[#FF8C00] text-black hover:bg-orange-500 shadow-md shadow-orange-500/15'
+                            : 'bg-neutral-800 border-slate-800 text-slate-300 hover:bg-neutral-700 hover:text-white'
+                        }`}
+                        title="Falar Agora"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>Falar Agora</span>
+                      </button>
                     </div>
                   </motion.div>
                 ))}
@@ -853,16 +954,37 @@ export default function TruckerHome({
 
             {/* Filters Bar */}
             <div className="bg-[#141414] border border-slate-800 p-4 rounded-xl space-y-3">
-              <div className="relative">
-                <Search className="absolute left-3.5 top-3.5 text-slate-500 w-5 h-5" />
+              <div className="relative flex items-center">
+                <Search className="absolute left-3.5 text-slate-500 w-5 h-5 pointer-events-none" />
                 <input
                   id="parts-query-search"
                   type="text"
-                  placeholder="Pesquise por turbina, pastilha, embreagem, pneu..."
+                  placeholder={isListening ? "Ouvindo... Fale a peça ou componente..." : "Pesquise por turbina, pastilha, embreagem, pneu..."}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#1A1A1A] border border-slate-850 rounded-xl pl-11 pr-4 py-3.5 text-sm focus:outline-none focus:border-orange-500 text-white"
+                  className={`w-full bg-[#1A1A1A] border rounded-xl pl-11 pr-14 py-3.5 text-sm focus:outline-none text-white transition-all duration-300 ${
+                    isListening 
+                      ? 'border-red-500 ring-2 ring-red-500/10 placeholder:text-red-400 font-semibold' 
+                      : 'border-slate-850 focus:border-orange-500'
+                  }`}
                 />
+                
+                <button
+                  type="button"
+                  onClick={handleToggleVoiceSearch}
+                  title={isListening ? "Parar de ouvir (mãos livres)" : "Pesquisar por voz (mãos livres)"}
+                  className={`absolute right-1.5 h-11 w-11 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer ${
+                    isListening
+                      ? 'bg-red-500 text-white animate-pulse shadow-lg shadow-red-500/20'
+                      : 'hover:bg-neutral-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {isListening ? (
+                    <MicOff className="w-5 h-5 animate-bounce" />
+                  ) : (
+                    <Mic className="w-5 h-5 text-[#FF8C00] hover:scale-110 duration-200" />
+                  )}
+                </button>
               </div>
 
               <div className="flex items-center space-x-3">

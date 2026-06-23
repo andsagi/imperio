@@ -1,6 +1,7 @@
 import React from 'react';
 import { Truck, Car, Bike, Crown, ShieldCheck, CheckCircle2, Award, Zap, HelpCircle } from 'lucide-react';
 import { motion } from 'motion/react';
+import ImperioLogo from './ImperioLogo';
 
 interface NicheSelectorProps {
   userName: string;
@@ -54,67 +55,23 @@ export default function NicheSelector({ userName, onSelect, currentNiche }: Nich
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 md:py-12 flex flex-col items-center justify-center min-h-[85vh] animate-fadeIn" id="niche-selector-screen">
       
-      {/* Proposed Unified Logo Suggestion Section */}
+      {/* Unified Logo Section */}
       <div className="w-full max-w-3xl bg-[#1A1A1A] border border-neutral-800 rounded-2xl p-5 md:p-6 mb-8 text-center relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-emerald-500 to-rose-500" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#FF8C00] via-amber-400 to-[#FF8C00]" />
         
         <span className="bg-[#FF8C00]/10 text-amber-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-amber-500/20 inline-flex items-center gap-1">
           <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-          <span>PROPOSTA DE NOVA MARCA</span>
+          <span>IDENTIDADE DA MARCA</span>
         </span>
 
-        {/* Suggested Graphic Unified Logo Box */}
+        {/* Graphic Unified Logo Box */}
         <div className="my-5 flex flex-col items-center justify-center">
-          <div className="relative w-24 h-24 flex items-center justify-center bg-black/60 rounded-3xl border border-neutral-750 p-2.5 shadow-inner">
-            
-            {/* The Unified Automotive Hexagonal Crown Crest Graphic SVG */}
-            <svg viewBox="0 0 100 100" className="w-full h-full animate-pulse-slow">
-              <defs>
-                <linearGradient id="imperialGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#FF8C00" />
-                  <stop offset="50%" stopColor="#10B981" />
-                  <stop offset="100%" stopColor="#E11D48" />
-                </linearGradient>
-              </defs>
-              {/* Outer Mechanical Hexagonal Gear */}
-              <polygon 
-                points="50,5 88,27 88,71 50,93 12,71 12,27" 
-                className="fill-none stroke-[4] stroke-slate-800"
-              />
-              <path 
-                d="M50,12 L82,31 L82,67 L50,86 L18,67 L18,31 Z" 
-                className="fill-none stroke-[3]" 
-                stroke="url(#imperialGrad)"
-              />
-              {/* Central Integrated Elements: Crown Top */}
-              <path 
-                d="M38,32 L44,40 L50,30 L56,40 L62,32 L60,48 L40,48 Z" 
-                className="fill-[#FF8C00] stroke-none"
-              />
-              {/* Linked Vehicle Tracks (Representing Heavy Tire, Steering wheel curve and Fork) */}
-              <path 
-                d="M32,54 C32,64 68,64 68,54" 
-                className="fill-none stroke-[3] stroke-emerald-400"
-              />
-              <path 
-                d="M38,62 C38,70 62,70 62,62" 
-                className="fill-none stroke-[2.5] stroke-rose-500"
-              />
-              <circle cx="50" cy="54" r="5" className="fill-white" />
-            </svg>
-            
-            {/* Soft lights around */}
-            <span className="absolute top-1 left-2 w-1.5 h-1.5 rounded-full bg-amber-500 blur-[1px]" />
-            <span className="absolute bottom-1 right-2 w-1.5 h-1.5 rounded-full bg-rose-500 blur-[1px]" />
-            <span className="absolute bottom-1 left-2 w-1.5 h-1.5 rounded-full bg-emerald-500 blur-[1px]" />
+          <div className="mb-4">
+            <ImperioLogo size="lg" variant="full" />
           </div>
 
-          <h3 className="text-2xl md:text-3xl font-extrabold bg-gradient-to-r from-amber-400 via-emerald-400 to-rose-400 bg-clip-text text-transparent uppercase tracking-widest mt-3">
-            IMPÉRIO
-          </h3>
-
-          <p className="text-xs text-slate-400 max-w-lg mt-2 leading-relaxed">
-            Uma marca unificada onde a <strong>engrenagem sextavada</strong> e a <strong>coroa imperial</strong> representam a soberania em autopeças e socorro imediato, cobrindo com excelência idêntica motoristas (Pesados), motoristas (Passeio) e pilotos (Motos).
+          <p className="text-xs text-slate-400 max-w-lg mt-2 leading-relaxed mx-auto font-sans">
+            A soberania em autopeças e socorro imediato, cobrindo com excelência idêntica motoristas de <strong>Pesados</strong>, <strong>Passeio</strong> e frotas ou motoristas de <strong>Motos</strong>.
           </p>
         </div>
 

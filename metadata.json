@@ -1,7 +1,9 @@
 {
   "name": "Império",
   "description": "App piloto conectando motoristas, caminhoneiros e motociclistas a fornecedores de autopeças e serviços urgentes com Atendimento Online e SOS.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "microphone"
+  ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]

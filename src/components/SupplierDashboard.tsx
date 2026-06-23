@@ -18,6 +18,7 @@ import { db } from '../firebase';
 import { generateSupplierAnalyticsPDF } from '../analyticsPdfGenerator';
 import BusinessPlanView from './BusinessPlanView';
 import { generateBusinessPlanPDF } from '../pdfGenerator';
+import ImperioLogo from './ImperioLogo';
 
 interface SupplierDashboardProps {
   companyName: string;
@@ -533,27 +534,24 @@ export default function SupplierDashboard({
       <header className="bg-[#1A1A1A] border-b border-neutral-800 py-4 px-4 sticky top-0 z-30 shadow-lg shrink-0">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            {/* Crown Overlaid Store Icon */}
-            <div className="relative w-10 h-10 bg-gradient-to-br from-[#FF8C00] to-amber-500 rounded-xl flex items-center justify-center border border-amber-500/20 shadow-md">
-              <div className="absolute -top-1.5 bg-black/95 px-1 py-0.5 rounded-full border border-amber-500/40 shadow-sm">
-                <Crown className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
-              </div>
-              <Store className="w-5 h-5 text-black stroke-[2.5]" />
+            {/* Imperio Brand Logo */}
+            <div className="w-10 h-10 bg-[#141414] rounded-xl flex items-center justify-center border border-neutral-800 shadow-md p-1 shrink-0">
+              <ImperioLogo size="sm" variant="icon" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-[#FF8C00] text-[10px] uppercase font-black tracking-wider">Painel Anunciante</span>
-                <span className="bg-[#FF8C00]/10 px-2 py-0.5 rounded-full border border-[#FF8C00]/20 text-[9px] text-[#FF8C00] font-extrabold uppercase flex items-center gap-0.5">
+                <span className="text-[#FF8C00] text-[10px] uppercase font-black tracking-wider font-display">Painel Anunciante</span>
+                <span className="bg-[#FF8C00]/10 px-2 py-0.5 rounded-full border border-[#FF8C00]/20 text-[9px] text-[#FF8C00] font-extrabold uppercase flex items-center gap-0.5 font-display">
                   <Crown className="w-2.5 h-2.5 text-amber-400 fill-amber-400 animate-pulse" />
                   <span>Parceiro Fundador</span>
                 </span>
               </div>
-              <h1 className="text-sm font-extrabold text-slate-300 leading-none mt-1 flex items-center gap-1.5 flex-wrap">
+              <h1 className="text-sm font-extrabold text-slate-300 leading-none mt-1 flex items-center gap-1.5 flex-wrap font-display">
                 <span>{companyName}</span>
                 <span className="text-slate-500 font-medium">|</span>
-                <span className="bg-gradient-to-r from-[#FF8C00] via-amber-400 to-[#FF8C00] bg-clip-text text-transparent font-black tracking-wider text-xs">IMPÉRIO</span>
+                <span className="text-white font-black tracking-wider text-xs font-display">IMPÉRIO</span>
                 {isSeller && (
-                  <span className="bg-amber-500/10 text-[#FF8C00] border border-[#FF8C00]/25 text-[9px] px-2 py-0.5 rounded font-black uppercase flex items-center gap-1 shrink-0">
+                  <span className="bg-amber-500/10 text-[#FF8C00] border border-[#FF8C00]/25 text-[9px] px-2 py-0.5 rounded font-black uppercase flex items-center gap-1 shrink-0 font-display">
                     <User className="w-2.5 h-2.5 text-amber-500" />
                     <span>Vendedor: {sellerName}</span>
                   </span>
