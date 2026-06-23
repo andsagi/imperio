@@ -3,9 +3,67 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Supplier, CatalogItem, Chat, TruckProfile, SOSRequest, OrderStats, Seller } from './types';
+import { Supplier, CatalogItem, Chat, TruckProfile, SOSRequest, OrderStats, Seller, Review } from './types';
 import { collection, doc, getDocs, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebase';
+
+export const INITIAL_REVIEWS: Review[] = [
+  {
+    id: 'r1',
+    targetId: 's1', // Tietê Diesel Autopeças
+    targetName: 'Tietê Diesel Autopeças',
+    targetType: 'supplier',
+    reviewerName: 'Roberto da Silva',
+    reviewerRole: 'trucker',
+    rating: 5,
+    comment: 'Atendimento nota 10! Consegui as peças para o Scania à pronta entrega e o vendedor Lucas me deu um desconto excelente na faturização.',
+    timestamp: '2026-06-15T14:30:00Z'
+  },
+  {
+    id: 'r2',
+    targetId: 's2', // Mecânica Diesel Express 24h
+    targetName: 'Mecânica Diesel Express 24h',
+    targetType: 'supplier',
+    reviewerName: 'Carlos Henrique',
+    reviewerRole: 'trucker',
+    rating: 4,
+    comment: 'Socorro rápido na rodovia Dutra. O guincho chegou em menos de 40 minutos. Recomendo bastante para emergências de motor.',
+    timestamp: '2026-06-18T18:15:00Z'
+  },
+  {
+    id: 'r3',
+    targetId: 'Roberto da Silva', // Roberto da Silva (trucker)
+    targetName: 'Roberto da Silva',
+    targetType: 'trucker',
+    reviewerName: 'Tietê Diesel Autopeças',
+    reviewerRole: 'supplier',
+    rating: 5,
+    comment: 'Excelente cliente! Motorista muito educado, pagamento correto e comunicação rápida durante a entrega das peças no pátio.',
+    timestamp: '2026-06-20T10:00:00Z'
+  },
+  {
+    id: 'r4',
+    targetId: 's3', // Rede Siga Bem - Posto da Serra
+    targetName: 'Rede Siga Bem - Posto da Serra',
+    targetType: 'supplier',
+    reviewerName: 'Augusto F.',
+    reviewerRole: 'trucker',
+    rating: 5,
+    comment: 'Posto super completo! Ótima estrutura de banho e descanso para nós caminhoneiros. Troca de óleo rápida no box.',
+    timestamp: '2026-06-21T11:00:00Z'
+  },
+  {
+    id: 'r5',
+    targetId: 'Carlos Henrique', // Carlos Henrique (trucker)
+    targetName: 'Carlos Henrique',
+    targetType: 'trucker',
+    reviewerName: 'Mecânica Diesel Express 24h',
+    reviewerRole: 'supplier',
+    rating: 4,
+    comment: 'Ótima comunicação e clareza no relato do problema no motor. Recomendo negociar com ele!',
+    timestamp: '2026-06-22T09:30:00Z'
+  }
+];
 
 export const INITIAL_SELLERS: Seller[] = [
   {
@@ -482,6 +540,19 @@ export const saveStats = (stats: OrderStats): void => {
   });
 };
 
+export const loadReviews = (): Review[] => getStorageItem('reviews', INITIAL_REVIEWS);
+export const saveReviews = (reviews: Review[]): void => {
+  setStorageItem('reviews', reviews);
+  // Async Sync to Firestore
+  reviews.forEach(async (review) => {
+    try {
+      await setDoc(doc(db, 'reviews', review.id), review);
+    } catch (e) {
+      console.warn('Failed to sync review to Firestore: ', e);
+    }
+  });
+};
+
 // Database Initial Seeding and Validation Connection function
 export const initializeDatabase = async (): Promise<boolean> => {
   try {
@@ -605,6 +676,27 @@ export const initializeDatabase = async (): Promise<boolean> => {
         } catch (err) {
           console.error(`Error writing seller ${seller.id}:`, err);
           handleFirestoreError(err, OperationType.WRITE, `sellers/${seller.id}`);
+        }
+      }
+    }
+
+    // 7. Check to seed Reviews
+    let reviewsSnap;
+    try {
+      reviewsSnap = await getDocs(collection(db, 'reviews'));
+    } catch (err) {
+      console.error('Error reading reviews collection:', err);
+      handleFirestoreError(err, OperationType.GET, 'reviews');
+    }
+
+    if (reviewsSnap && reviewsSnap.empty) {
+      console.log('Database empty! Seeding INITIAL_REVIEWS...');
+      for (const rev of INITIAL_REVIEWS) {
+        try {
+          await setDoc(doc(db, 'reviews', rev.id), rev);
+        } catch (err) {
+          console.error(`Error writing review ${rev.id}:`, err);
+          handleFirestoreError(err, OperationType.WRITE, `reviews/${rev.id}`);
         }
       }
     }

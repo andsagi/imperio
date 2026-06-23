@@ -128,6 +128,23 @@
         "registeredAt": { "type": "string" }
       },
       "required": ["id", "supplierId", "name", "email", "phone"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A feedback review left by truckers for suppliers, or vice versa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetName": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["supplier", "trucker"] },
+        "reviewerName": { "type": "string" },
+        "reviewerRole": { "type": "string", "enum": ["trucker", "supplier", "seller"] },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "targetId", "targetName", "targetType", "reviewerName", "reviewerRole", "rating", "comment", "timestamp"]
     }
   },
   "firestore": {
@@ -162,6 +179,10 @@
     "/sellers/{sellerId}": {
       "schema": { "$ref": "Seller" },
       "description": "Consultants and salespersons for suppliers"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "Review" },
+      "description": "Public reviews exchangeable between truckers and suppliers"
     }
   }
 }

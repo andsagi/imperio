@@ -11,7 +11,7 @@ import {
   Mic, MicOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Supplier, CatalogItem, Chat, TruckProfile, Message } from '../types';
+import { Supplier, CatalogItem, Chat, TruckProfile, Message, Review } from '../types';
 import { loadSuppliers, loadCatalogItems, loadChats, saveChats, loadTruckProfile, saveTruckProfile } from '../mockData';
 import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -27,6 +27,8 @@ interface TruckerHomeProps {
   suppliers: Supplier[];
   setSuppliers: React.Dispatch<React.SetStateAction<Supplier[]>>;
   catalogItems: CatalogItem[];
+  reviews: Review[];
+  onAddReview: (review: Review) => void;
   niche?: 'pesados' | 'passeio' | 'motos';
   googleToken?: string | null;
 }
@@ -39,11 +41,21 @@ export default function TruckerHome({
   suppliers,
   setSuppliers,
   catalogItems,
+  reviews,
+  onAddReview,
   niche = 'pesados',
   googleToken = null
 }: TruckerHomeProps) {
-  const [activeTab, setActiveTab] = useState<'inicio' | 'pecas' | 'chat' | 'perfil'>('inicio');
+  const [activeTab, setActiveTab] = useState<'inicio' | 'pecas' | 'chat' | 'ranking' | 'perfil'>('inicio');
   const [selectedZoomPhoto, setSelectedZoomPhoto] = useState<string | null>(null);
+
+  // Submit Review state
+  const [showAddReview, setShowAddReview] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewTargetId, setReviewTargetId] = useState<string | null>(null);
+  const [reviewTargetName, setReviewTargetName] = useState<string>('');
+  const [reviewTargetType, setReviewTargetType] = useState<'supplier' | 'trucker'>('supplier');
   
   // Google Contacts States
   const [googleContacts, setGoogleContacts] = useState<any[]>([]);
@@ -796,6 +808,114 @@ export default function TruckerHome({
                         </div>
                       </div>
 
+                      {/* Avaliar Fornecedor Card */}
+                      <div className="bg-[#1C1C1C] border border-slate-800 p-4 rounded-xl space-y-3">
+                        <h4 className="text-xs font-black uppercase text-[#FF8C00] tracking-widest flex items-center gap-1.5">
+                          ⭐ Avaliar este Fornecedor
+                        </h4>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                          Sua experiência ao negociar com este fornecedor foi positiva? Deixe uma nota e feedback para colaborar com a comunidade de transportes e com o ranking.
+                        </p>
+
+                        {/* Star Rating select */}
+                        <div className="flex items-center gap-1.5 py-1">
+                          {[1, 2, 3, 4, 5].map(stars => (
+                            <button
+                              key={stars}
+                              onClick={() => {
+                                setReviewTargetId(selectedSupplier.id);
+                                setReviewTargetName(selectedSupplier.name);
+                                setReviewTargetType('supplier');
+                                setReviewRating(stars);
+                                setShowAddReview(true);
+                              }}
+                              className="text-slate-500 hover:text-amber-400 transition"
+                              title={`Avaliar com ${stars} estrelas`}
+                            >
+                              <Star className={`w-5 h-5 ${reviewTargetId === selectedSupplier.id && reviewRating >= stars ? 'fill-amber-500 text-amber-500' : 'text-slate-600 hover:text-amber-400'}`} />
+                            </button>
+                          ))}
+                        </div>
+
+                        {showAddReview && reviewTargetId === selectedSupplier.id && (
+                          <div className="space-y-3 pt-2 border-t border-slate-800">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                                Comentário / Avaliação
+                              </label>
+                              <textarea
+                                value={reviewComment}
+                                onChange={(e) => setReviewComment(e.target.value)}
+                                placeholder="Fale um pouco sobre o atendimento de autopeças ou socorro..."
+                                className="w-full text-xs p-3 rounded-lg bg-neutral-900 border border-slate-850 focus:border-orange-500 focus:outline-none min-h-[60px]"
+                                maxLength={250}
+                              />
+                            </div>
+                            <div className="flex justify-end gap-2 text-xs">
+                              <button
+                                onClick={() => {
+                                  setShowAddReview(false);
+                                  setReviewComment('');
+                                }}
+                                className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-slate-300 rounded-lg font-bold"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (!reviewComment.trim()) {
+                                    alert('Por favor, digite um comentário antes de enviar.');
+                                    return;
+                                  }
+                                  const reviewId = 'rev_' + Date.now();
+                                  onAddReview({
+                                    id: reviewId,
+                                    targetId: selectedSupplier.id,
+                                    targetName: selectedSupplier.name,
+                                    targetType: 'supplier',
+                                    reviewerName: userName,
+                                    reviewerRole: 'trucker',
+                                    rating: reviewRating,
+                                    comment: reviewComment.trim(),
+                                    timestamp: new Date().toISOString()
+                                  });
+                                  alert('Avaliação enviada com sucesso para o banco de dados!');
+                                  setReviewComment('');
+                                  setShowAddReview(false);
+                                }}
+                                className="px-4 py-1.5 bg-[#FF8C00] hover:bg-orange-600 text-black rounded-lg font-extrabold"
+                              >
+                                Enviar Nota
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Display other reviews for this supplier below */}
+                        {reviews.filter(r => r.targetId === selectedSupplier.id && r.targetType === 'supplier').length > 0 && (
+                          <div className="pt-3 border-t border-slate-800 space-y-2">
+                            <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Últimos comentários dos motoristas:</span>
+                            <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                              {reviews
+                                .filter(r => r.targetId === selectedSupplier.id && r.targetType === 'supplier')
+                                .map(rev => (
+                                  <div key={rev.id} className="p-2.5 bg-[#121212]/50 border border-slate-850 rounded-lg text-[11px] space-y-1">
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-extrabold text-white text-[10px]">{rev.reviewerName}</span>
+                                      <span className="text-amber-500 font-bold flex items-center">
+                                        {Array.from({ length: rev.rating }).map((_, i) => (
+                                          <Star key={i} className="w-2.5 h-2.5 fill-amber-500 text-amber-500" />
+                                        ))}
+                                      </span>
+                                    </div>
+                                    <p className="text-slate-400 italic">"{rev.comment}"</p>
+                                  </div>
+                                ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Store specific catalog items filtered */}
                       <div className="space-y-3">
                         <h4 className="text-xs font-extrabold text-slate-300 uppercase tracking-widest border-b border-slate-850 pb-1.5 flex items-center justify-between">
@@ -1204,6 +1324,183 @@ export default function TruckerHome({
           </div>
         )}
 
+        {/* Unified Ranking public leaderboard */}
+        {activeTab === 'ranking' && (
+          <div className="max-w-4xl mx-auto space-y-6" id="trucker-ranking-view">
+            <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/5 border border-[#FF8C00]/30 rounded-2xl p-6 relative overflow-hidden backdrop-blur-md">
+              <div className="absolute right-6 top-6 opacity-10 pointer-events-none">
+                <Crown size={96} className="text-amber-400" />
+              </div>
+              <h2 className="text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <Crown className="w-6 h-6 text-amber-400 fill-amber-400" />
+                Ranqueamento Geral da Comunidade
+              </h2>
+              <p className="text-xs text-slate-400 mt-1 max-w-xl leading-relaxed">
+                Acompanhe o ranking em tempo real dos fornecedores parceiros que oferecem o melhor atendimento e peças originais, além dos próprios motoristas e clientes avaliados positivamente pelos fornecedores.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+              
+              {/* Fornecedores (Suppliers) Ranking Panel */}
+              <div className="bg-[#141414] border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h3 className="text-xs md:text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                    <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                    Fornecedores com Maior Prestígio
+                  </h3>
+                  <span className="text-[9px] bg-amber-500/10 text-amber-400 font-extrabold px-2 py-0.5 rounded border border-amber-500/20 uppercase">
+                    SOS & Peças
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {suppliers
+                    .slice()
+                    .sort((a, b) => b.rating - a.rating || b.reviewsCount - a.reviewsCount)
+                    .map((supplier, idx) => {
+                      const placeBg = idx === 0 ? 'bg-amber-400/20 border-amber-400/40 text-amber-400 font-black' :
+                                      idx === 1 ? 'bg-slate-300/10 border-slate-300/30 text-slate-300 font-bold' :
+                                      idx === 2 ? 'bg-amber-700/10 border-amber-700/30 text-amber-600 font-bold' :
+                                      'bg-neutral-900 border-slate-850 text-slate-400';
+                      
+                      const placeIcon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                      const supplierReviews = reviews.filter(r => r.targetId === supplier.id && r.targetType === 'supplier');
+
+                      return (
+                        <div key={supplier.id} className="p-3.5 bg-[#1C1C1C] border border-slate-800/85 rounded-xl relative hover:border-slate-700 transition">
+                          <div className="flex items-start gap-3">
+                            <span className={`w-8 h-8 rounded-lg border flex items-center justify-center text-xs shrink-0 font-bold ${placeBg}`}>
+                              {placeIcon}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-extrabold text-white text-xs md:text-sm truncate leading-none">{supplier.name}</h4>
+                              <p className="text-[10px] text-slate-400 mt-1 truncate">{supplier.specialty}</p>
+                              
+                              <div className="flex items-center gap-4 mt-2">
+                                <span className="text-xs text-amber-500 font-black flex items-center">
+                                  <Star className="w-3.5 h-3.5 fill-amber-500 mr-1" />
+                                  {supplier.rating.toFixed(1)}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-medium">{supplier.reviewsCount} avaliações</span>
+                              </div>
+
+                              {supplierReviews.length > 0 && (
+                                <div className="mt-2.5 p-2 bg-neutral-900 border border-slate-800 rounded-lg">
+                                  <p className="text-[10px] text-slate-400 italic">
+                                    "{supplierReviews[0].comment}"
+                                  </p>
+                                  <span className="text-[9px] text-[#FF8C00] font-bold block mt-1 text-right">
+                                    — {supplierReviews[0].reviewerName}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+
+              {/* Clientes (Truckers/Drivers) Ranking Panel */}
+              <div className="bg-[#141414] border border-slate-800 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h3 className="text-xs md:text-sm font-black text-white uppercase tracking-widest flex items-center gap-2">
+                    <User className="w-4 h-4 text-emerald-400" />
+                    Caminhoneiros & Clientes Nota 10
+                  </h3>
+                  <span className="text-[9px] bg-emerald-500/10 text-emerald-400 font-extrabold px-2 py-0.5 rounded border border-emerald-500/20 uppercase">
+                    Motoristas
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {(() => {
+                    const truckerReviews = reviews.filter(r => r.targetType === 'trucker');
+                    const truckerMap: Record<string, { total: number, count: number, name: string }> = {};
+                    
+                    const initialGrouped = [
+                      { targetId: 'Roberto da Silva', name: 'Roberto da Silva', total: 5, count: 1 },
+                      { targetId: 'Carlos Henrique', name: 'Carlos Henrique', total: 4, count: 1 },
+                      { targetId: 'João Transportador', name: 'João Transportador', total: 4.8, count: 2 },
+                    ];
+
+                    initialGrouped.forEach(item => {
+                      truckerMap[item.targetId] = { total: item.total, count: item.count, name: item.name };
+                    });
+
+                    truckerReviews.forEach(r => {
+                      if (!truckerMap[r.targetId]) {
+                        truckerMap[r.targetId] = { total: 0, count: 0, name: r.targetName };
+                      }
+                      if (r.id === 'r3' && r.targetId === 'Roberto da Silva') return;
+                      if (r.id === 'r5' && r.targetId === 'Carlos Henrique') return;
+                      
+                      truckerMap[r.targetId].total += r.rating;
+                      truckerMap[r.targetId].count += 1;
+                    });
+
+                    const truckerList = Object.keys(truckerMap).map(id => {
+                      const data = truckerMap[id];
+                      return {
+                        id,
+                        name: data.name,
+                        rating: Number((data.total / data.count).toFixed(1)),
+                        reviewsCount: data.count
+                      };
+                    }).sort((a, b) => b.rating - a.rating || b.reviewsCount - a.reviewsCount);
+
+                    return truckerList.map((driver, idx) => {
+                      const placeBg = idx === 0 ? 'bg-amber-400/20 border-amber-400/40 text-amber-400 font-black' :
+                                      idx === 1 ? 'bg-slate-300/10 border-slate-300/30 text-slate-300 font-bold' :
+                                      idx === 2 ? 'bg-amber-700/10 border-amber-700/30 text-amber-600 font-bold' :
+                                      'bg-neutral-900 border-slate-850 text-slate-400';
+                      
+                      const placeIcon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                      const driverReviews = reviews.filter(r => r.targetId === driver.id && r.targetType === 'trucker');
+
+                      return (
+                        <div key={driver.id} className="p-3.5 bg-[#1C1C1C] border border-slate-800/85 rounded-xl relative hover:border-slate-700 transition">
+                          <div className="flex items-start gap-3">
+                            <span className={`w-8 h-8 rounded-lg border flex items-center justify-center text-xs shrink-0 font-bold ${placeBg}`}>
+                              {placeIcon}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-extrabold text-white text-xs md:text-sm truncate leading-none">{driver.name}</h4>
+                              <p className="text-[10px] text-slate-400 mt-1">Parceiro Pró-Ativo</p>
+                              
+                              <div className="flex items-center gap-4 mt-2">
+                                <span className="text-xs text-emerald-400 font-black flex items-center">
+                                  <Star className="w-3.5 h-3.5 fill-emerald-500 text-emerald-400 mr-1" />
+                                  {driver.rating.toFixed(1)}
+                                </span>
+                                <span className="text-[10px] text-slate-500 font-medium">{driver.reviewsCount} avaliações</span>
+                              </div>
+
+                              {driverReviews.length > 0 && (
+                                <div className="mt-2.5 p-2 bg-neutral-900 border border-slate-800 rounded-lg">
+                                  <p className="text-[10px] text-slate-400 italic">
+                                    "{driverReviews[0].comment}"
+                                  </p>
+                                  <span className="text-[9px] text-emerald-400 font-bold block mt-1 text-right">
+                                    — {driverReviews[0].reviewerName}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
         {/* Profile Maintenance checklist block */}
         {activeTab === 'perfil' && (
           <div className="space-y-6" id="profile-tab-view">
@@ -1493,24 +1790,25 @@ export default function TruckerHome({
 
       {/* Styled Bottom Navigation bar */}
       <nav id="trucker-navbar" className="fixed bottom-0 inset-x-0 bg-[#1A1A1A] border-t border-neutral-800 py-3.5 px-4 z-40 shadow-xl shrink-0 selection:bg-[#FF8C00] selection:text-black">
-        <div className="max-w-md mx-auto grid grid-cols-4 gap-2">
+        <div className="max-w-lg mx-auto grid grid-cols-5 gap-1">
           {[
             { id: 'inicio', label: 'Início', icon: <Package className="w-5 h-5" /> },
-            { id: 'pecas', label: 'Buscar Peças', icon: <Search className="w-5 h-5" /> },
-            { id: 'chat', label: 'Chat Vendedor', icon: <MessageSquare className="w-5 h-5" /> },
-            { id: 'perfil', label: 'Meu Truck', icon: <Truck className="w-5 h-5" /> }
+            { id: 'pecas', label: 'Peças', icon: <Search className="w-5 h-5" /> },
+            { id: 'chat', label: 'Chat', icon: <MessageSquare className="w-5 h-5" /> },
+            { id: 'ranking', label: 'Ranking', icon: <Crown className="w-5 h-5 text-amber-400 fill-amber-400/10 animate-pulse" /> },
+            { id: 'perfil', label: 'Perfil', icon: <Truck className="w-5 h-5" /> }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex flex-col items-center justify-center transition-all cursor-pointer ${
                 activeTab === tab.id
-                  ? 'text-[#FF8C00] scale-105'
+                  ? 'text-[#FF8C00] scale-105 font-black'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               {tab.icon}
-              <span className="text-[10px] font-extrabold mt-1 tracking-wide">{tab.label}</span>
+              <span className="text-[10px] font-bold mt-1 tracking-wide">{tab.label}</span>
             </button>
           ))}
         </div>

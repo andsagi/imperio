@@ -96,3 +96,16 @@ export interface Seller {
   registeredAt: string;
 }
 
+export interface Review {
+  id: string;
+  targetId: string; // The ID of the rated entity (e.g. supplier's supplierId, or trucker's phone/name)
+  targetName: string; // Name of the entity being rated (e.g., Tietê Diesel, Roberto Motorista)
+  targetType: 'supplier' | 'trucker'; // Who is being rated
+  reviewerName: string; // Name of the reviewer
+  reviewerRole: 'trucker' | 'supplier' | 'seller'; // Role of the reviewer
+  rating: number; // 1 to 5 stars
+  comment: string; // description or feedback
+  timestamp: string; // ISO Date String
+}
+
+

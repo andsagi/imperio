@@ -16,8 +16,8 @@ import NicheSelector from './components/NicheSelector';
 import ImperioLogo from './components/ImperioLogo';
 
 // Data layers
-import { Supplier, CatalogItem } from './types';
-import { loadSuppliers, saveSuppliers, loadCatalogItems, saveCatalogItems, resetToDefaults, initializeDatabase } from './mockData';
+import { Supplier, CatalogItem, Review } from './types';
+import { loadSuppliers, saveSuppliers, loadCatalogItems, saveCatalogItems, loadReviews, saveReviews, resetToDefaults, initializeDatabase } from './mockData';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 
@@ -33,6 +33,7 @@ export default function App() {
   // Persistence states
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [sosOpen, setSosOpen] = useState(false);
 
   // Load suppliers and catalog initially
@@ -40,9 +41,11 @@ export default function App() {
     // 1. Initial local load
     setSuppliers(loadSuppliers());
     setCatalogItems(loadCatalogItems());
+    setReviews(loadReviews());
 
     let unsubSuppliers: (() => void) | null = null;
     let unsubCatalog: (() => void) | null = null;
+    let unsubReviews: (() => void) | null = null;
     let isMounted = true;
 
     // 2. Initialize Firestore DB and Seed if empty
@@ -72,12 +75,25 @@ export default function App() {
       }, (err) => {
         console.warn('Catalog snapshot error: ', err);
       });
+
+      unsubReviews = onSnapshot(collection(db, 'reviews'), (snapshot) => {
+        const list: Review[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data() as Review);
+        });
+        if (list.length > 0) {
+          setReviews(list);
+        }
+      }, (err) => {
+        console.warn('Reviews snapshot error: ', err);
+      });
     });
 
     return () => {
       isMounted = false;
       if (unsubSuppliers) unsubSuppliers();
       if (unsubCatalog) unsubCatalog();
+      if (unsubReviews) unsubReviews();
     };
   }, []);
 
@@ -130,6 +146,31 @@ export default function App() {
     setSellerInfo(null);
     setNiche(null);
     setGoogleToken(null);
+  };
+
+  const handleAddReview = (newReview: Review) => {
+    const updatedReviews = [newReview, ...reviews];
+    setReviews(updatedReviews);
+    saveReviews(updatedReviews);
+
+    // Also update supplier average rating if the target is a supplier
+    if (newReview.targetType === 'supplier') {
+      const supplierReviews = updatedReviews.filter(r => r.targetId === newReview.targetId && r.targetType === 'supplier');
+      const avgRating = Number((supplierReviews.reduce((sum, r) => sum + r.rating, 0) / supplierReviews.length).toFixed(1));
+      
+      const updatedSuppliers = suppliers.map(s => {
+        if (s.id === newReview.targetId) {
+          return {
+            ...s,
+            rating: avgRating,
+            reviewsCount: supplierReviews.length
+          };
+        }
+        return s;
+      });
+      setSuppliers(updatedSuppliers);
+      saveSuppliers(updatedSuppliers);
+    }
   };
 
   return (
@@ -308,6 +349,8 @@ export default function App() {
                 suppliers={suppliers}
                 setSuppliers={setSuppliers}
                 catalogItems={catalogItems}
+                reviews={reviews}
+                onAddReview={handleAddReview}
                 niche={niche}
                 googleToken={googleToken}
               />
@@ -330,6 +373,8 @@ export default function App() {
                 setSuppliers={setSuppliers}
                 catalogItems={catalogItems}
                 setCatalogItems={setCatalogItems}
+                reviews={reviews}
+                onAddReview={handleAddReview}
                 isSeller={role === 'seller'}
                 sellerName={sellerInfo?.name}
                 sellerEmail={sellerInfo?.email}

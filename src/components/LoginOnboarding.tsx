@@ -473,8 +473,8 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
         <div className="flex flex-col items-center text-center mb-6" id="login-brand-header">
           <ImperioLogo size="lg" variant="full" className="mb-2" />
           
-          <p className="text-amber-400 text-[10px] font-black uppercase tracking-widest bg-amber-500/10 px-3 py-1.5 rounded-full border border-amber-500/20 flex items-center gap-1.5">
-            <Crown className="w-3.5 h-3.5 text-amber-400 fill-amber-500/20 shrink-0" />
+          <p className="text-[#FF8C00] text-[10px] font-black uppercase tracking-widest bg-[#FF8C00]/10 px-3 py-1.5 rounded-full border border-[#FF8C00]/20 flex items-center gap-1.5 font-display">
+            <Crown className="w-3.5 h-3.5 text-[#FF8C00] fill-[#FF8C00]/20 shrink-0" />
             <span>Peças, Serviços e Socorro Imediato</span>
           </p>
         </div>
@@ -943,52 +943,7 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
         )}
       </motion.div>
 
-      {/* Quick Demo Bypass Panel */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="w-full max-w-md mt-6 bg-[#161616]/95 border border-dashed border-amber-500/25 rounded-2xl p-4 text-center z-10"
-      >
-        <span className="text-[10px] bg-amber-500/10 text-amber-500 font-extrabold uppercase px-2.5 py-1 rounded-full border border-amber-500/20 tracking-widest">
-          🔄 Ambiente Integrado de Homologação (Auditoria)
-        </span>
-        <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
-          Clique em qualquer perfil abaixo para simular login imediato e auditar seus respectivos painéis:
-        </p>
-        
-        <div className="grid grid-cols-3 gap-2 mt-3">
-          <button
-            type="button"
-            onClick={() => onLogin('trucker', 'Roberto Motorista', { truckModel: 'Volvo FH 540 Globetrotter', phone: '(11) 99999-9999', googleAccessToken: 'mock_contacts_token' })}
-            className="flex flex-col items-center p-2.5 rounded-xl bg-[#202020] border border-neutral-800 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all cursor-pointer group active:scale-[0.97]"
-          >
-            <Truck className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
-            <span className="text-[9.5px] font-bold leading-tight">1. Motorista</span>
-            <span className="text-[8.5px] text-slate-500 mt-0.5 leading-none font-medium">Veículo</span>
-          </button>
 
-          <button
-            type="button"
-            onClick={() => onLogin('supplier', 'Tietê Diesel Autopeças', { cnpj: '12.345.678/0001-99', phone: '(11) 98765-4321', googleAccessToken: 'mock_contacts_token' })}
-            className="flex flex-col items-center p-2.5 rounded-xl bg-[#202020] border border-neutral-800 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all cursor-pointer group active:scale-[0.97]"
-          >
-            <Store className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
-            <span className="text-[9.5px] font-bold leading-tight">2. Proprietário</span>
-            <span className="text-[8.5px] text-slate-500 mt-0.5 leading-none">Empresa</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onLogin('seller', 'Lucas Consultor', { id: 'v1', supplierId: 's1', supplierName: 'Tietê Diesel Autopeças', email: 'lucas@gmail.com', googleAccessToken: 'mock_contacts_token' })}
-            className="flex flex-col items-center p-2.5 rounded-xl bg-[#202020] border border-neutral-800 hover:border-amber-500/30 text-slate-300 hover:text-white transition-all cursor-pointer group active:scale-[0.97]"
-          >
-            <Key className="w-4 h-4 text-amber-500 group-hover:scale-110 transition-transform mb-1" />
-            <span className="text-[9.5px] font-bold leading-tight">3. Vendedor</span>
-            <span className="text-[8.5px] text-slate-500 mt-0.5 leading-none">Consultor</span>
-          </button>
-        </div>
-      </motion.div>
 
       {/* BIOMETRIC SCANNING OVERLAY MODAL */}
       <AnimatePresence>
