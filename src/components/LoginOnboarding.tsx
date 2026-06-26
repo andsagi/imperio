@@ -134,6 +134,7 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
   const [simulatedGoogleOpen, setSimulatedGoogleOpen] = useState(false);
   const [simMail, setSimMail] = useState('');
   const [alert, setAlert] = useState<{ type: 'error' | 'success' | 'warn'; message: string } | null>(null);
+  const [infoModal, setInfoModal] = useState<'about' | 'faq' | 'support' | null>(null);
 
   // Biometrics States
   const [bioProfile, setBioProfile] = useState<any>(null);
@@ -483,17 +484,26 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
         <div className="flex flex-col items-center text-center mb-6" id="login-brand-header">
           <ImperioLogo size="lg" variant="full" className="mb-2" />
           
-          <p className="text-[#FF8C00] text-[10px] font-black uppercase tracking-widest bg-[#FF8C00]/10 px-3 py-1.5 rounded-full border border-[#FF8C00]/20 flex items-center gap-1.5 font-display">
+          <p className="text-[#FF8C00] text-[10px] font-black uppercase tracking-widest bg-[#FF8C00]/10 px-3 py-1.5 rounded-full border border-[#FF8C00]/20 flex items-center gap-1.5 font-display mb-3">
             <Crown className="w-3.5 h-3.5 text-[#FF8C00] fill-[#FF8C00]/20 shrink-0" />
             <span>Peças, Serviços e Socorro Imediato</span>
+          </p>
+
+          <p className="text-slate-300 text-xs md:text-sm font-medium leading-relaxed max-w-sm">
+            Conectamos motoristas, fornecedores e serviços automotivos em um só lugar, com agilidade e segurança em qualquer rodovia ou região.
           </p>
         </div>
 
         {step === 1 ? (
           <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-2 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#FF8C00] bg-[#FF8C00]/10 px-2 py-0.5 rounded border border-[#FF8C00]/20">Etapa 1 de 2</span>
+              <span className="text-xs font-bold text-slate-300">Escolha de Perfil</span>
+            </div>
+
             <div className="text-center">
-              <h2 className="text-sm font-bold text-slate-200">Como você deseja acessar a plataforma?</h2>
-              <p className="text-slate-400 text-xs mt-1">Selecione seu perfil abaixo para continuar.</p>
+              <h2 className="text-base font-black text-white tracking-tight">Como você deseja acessar a plataforma?</h2>
+              <p className="text-slate-400 text-xs mt-1">Selecione seu perfil abaixo para avançar com cadastro.</p>
             </div>
 
             {/* Role Cards (Only 2 Main Options) */}
@@ -507,18 +517,18 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
                   setRole('trucker');
                   setCompanyType(null);
                 }}
-                className={`flex items-center p-3 rounded-xl border transition-all text-left group cursor-pointer ${
+                className={`flex items-center p-3.5 rounded-xl border transition-all text-left group cursor-pointer active:scale-[0.99] ${
                   mainRole === 'trucker'
-                    ? 'bg-[#FF8C00]/10 border-[#FF8C00] text-white shadow-lg'
-                    : 'bg-[#1A1A1A] border-neutral-800 text-slate-300 hover:border-neutral-700'
+                    ? 'bg-[#FF8C00]/15 border-[#FF8C00] text-white shadow-xl shadow-[#FF8C00]/10 ring-1 ring-[#FF8C00]/50'
+                    : 'bg-[#1A1A1A] border-neutral-800 text-slate-300 hover:border-neutral-600 hover:bg-neutral-900/80'
                 }`}
               >
-                <div className={`p-2 rounded-lg mr-3 shrink-0 ${mainRole === 'trucker' ? 'bg-[#FF8C00] text-black' : 'bg-[#2A2A2A] text-[#FF8C00]'}`}>
-                  <Truck className="w-5 h-5 stroke-[2]" />
+                <div className={`p-2.5 rounded-xl mr-3.5 shrink-0 transition-colors ${mainRole === 'trucker' ? 'bg-[#FF8C00] text-black shadow-md' : 'bg-[#2A2A2A] text-[#FF8C00] group-hover:bg-[#333]'}`}>
+                  <Truck className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-extrabold text-xs md:text-sm group-hover:text-[#FF8C00] transition-colors leading-none">Sou Motorista</h3>
-                  <p className="text-[11px] text-slate-450 mt-1 leading-normal">Busque autopeças, chame socorro e negocie na rodovia de graça.</p>
+                  <h3 className="font-black text-sm md:text-base group-hover:text-[#FF8C00] transition-colors leading-tight text-white">Sou Motorista</h3>
+                  <p className="text-xs text-slate-350 mt-1 font-normal leading-normal">Encontre peças, solicite socorro veicular e negocie diretamente com prestadores — tudo sem custo.</p>
                 </div>
               </button>
 
@@ -531,18 +541,18 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
                   setRole(null);
                   setCompanyType(null);
                 }}
-                className={`flex items-center p-3 rounded-xl border transition-all text-left group cursor-pointer ${
+                className={`flex items-center p-3.5 rounded-xl border transition-all text-left group cursor-pointer active:scale-[0.99] ${
                   mainRole === 'company'
-                    ? 'bg-[#FF8C00]/10 border-[#FF8C00] text-white shadow-lg'
-                    : 'bg-[#1A1A1A] border-neutral-800 text-slate-300 hover:border-neutral-700'
+                    ? 'bg-[#FF8C00]/15 border-[#FF8C00] text-white shadow-xl shadow-[#FF8C00]/10 ring-1 ring-[#FF8C00]/50'
+                    : 'bg-[#1A1A1A] border-neutral-800 text-slate-300 hover:border-neutral-600 hover:bg-neutral-900/80'
                 }`}
               >
-                <div className={`p-2 rounded-lg mr-3 shrink-0 ${mainRole === 'company' ? 'bg-[#FF8C00] text-black' : 'bg-[#2A2A2A] text-[#FF8C00]'}`}>
-                  <Store className="w-5 h-5 stroke-[2]" />
+                <div className={`p-2.5 rounded-xl mr-3.5 shrink-0 transition-colors ${mainRole === 'company' ? 'bg-[#FF8C00] text-black shadow-md' : 'bg-[#2A2A2A] text-[#FF8C00] group-hover:bg-[#333]'}`}>
+                  <Store className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-extrabold text-xs md:text-sm group-hover:text-[#FF8C00] transition-colors leading-none">Sou Empresa / Fornecedor</h3>
-                  <p className="text-[11px] text-slate-450 mt-1 leading-normal">Crie seu catálogo, receba cotações e gerencie sua equipe de vendas.</p>
+                  <h3 className="font-black text-sm md:text-base group-hover:text-[#FF8C00] transition-colors leading-tight text-white">Sou Empresa / Fornecedor</h3>
+                  <p className="text-xs text-slate-350 mt-1 font-normal leading-normal">Cadastre seu catálogo de produtos ou serviços, receba cotações e gerencie sua equipe de vendas.</p>
                 </div>
               </button>
             </div>
@@ -660,20 +670,25 @@ export default function LoginOnboarding({ onLogin }: LoginOnboardingProps) {
               id="onboarding-next-step-btn"
               disabled={!role}
               onClick={handleNext}
-              className={`w-full py-3.5 px-4 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-all ${
+              className={`w-full py-4 px-4 rounded-xl font-black text-xs md:text-sm uppercase tracking-wider flex items-center justify-center space-x-2 transition-all active:scale-[0.98] ${
                 role
-                  ? 'bg-[#FF8C00] hover:bg-[#E67E00] text-black cursor-pointer shadow-lg shadow-[#FF8C00]/10'
+                  ? 'bg-[#FF8C00] hover:bg-[#E67E00] text-black cursor-pointer shadow-xl shadow-[#FF8C00]/20'
                   : 'bg-neutral-800 text-slate-500 cursor-not-allowed'
               }`}
             >
               <span>
-                {role === 'seller' ? 'Avançar como Vendedor' : role === 'supplier' ? 'Avançar como Proprietário' : 'Avançar com Cadastro'}
+                {role === 'seller' ? 'Avançar como Vendedor (Ir para Inscrição)' : role === 'supplier' ? 'Avançar como Proprietário (Ir para Inscrição)' : 'Avançar com Cadastro (Ir para Inscrição)'}
               </span>
               <ArrowRight className="w-4 h-4 stroke-[3.5]" />
             </button>
           </div>
         ) : (
           <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-2 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#FF8C00] bg-[#FF8C00]/10 px-2 py-0.5 rounded border border-[#FF8C00]/20">Etapa 2 de 2</span>
+              <span className="text-xs font-bold text-slate-300">Formulário de Inscrição</span>
+            </div>
+
             <div className="flex items-center justify-between border-b border-neutral-800 pb-2 mb-2">
               <h3 className="text-xs font-black text-slate-200 uppercase tracking-widest flex items-center space-x-2">
                 <User className="text-[#FF8C00] w-4 h-4" />
