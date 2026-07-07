@@ -1,0 +1,188 @@
+{
+  "entities": {
+    "Supplier": {
+      "title": "Supplier",
+      "description": "A parts supplier or service shop registered on the platform",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "specialty": { "type": "string" },
+        "category": { "type": "string", "enum": ["pecas", "mecanica", "postos", "pneus", "socorro"] },
+        "distance": { "type": "number" },
+        "rating": { "type": "number" },
+        "reviewsCount": { "type": "number" },
+        "isOnline": { "type": "boolean" },
+        "contactPhone": { "type": "string" },
+        "whatsappNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "isFoundingPartner": { "type": "boolean" }
+      },
+      "required": ["id", "name", "category", "distance", "rating", "isOnline"]
+    },
+    "CatalogItem": {
+      "title": "CatalogItem",
+      "description": "An autopart catalog item sold by a supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "code": { "type": "string" },
+        "price": { "type": "number" },
+        "compatibleWith": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["id", "supplierId", "title", "category", "code", "price", "compatibleWith"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "A chat message exchanged between a trucker and a supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sender": { "type": "string", "enum": ["trucker", "supplier"] },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "image": { "type": "string" },
+        "isOffer": { "type": "boolean" },
+        "offerPrice": { "type": "number" },
+        "offerItem": { "type": "string" }
+      },
+      "required": ["id", "sender", "text", "timestamp"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "A chat conversation thread between a trucker and a supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "supplierName": { "type": "string" },
+        "lastMessage": { "type": "string" },
+        "unreadCount": { "type": "number" },
+        "timestamp": { "type": "string" },
+        "isOnline": { "type": "boolean" }
+      },
+      "required": ["id", "supplierId", "supplierName", "lastMessage", "unreadCount", "timestamp", "isOnline"]
+    },
+    "TruckProfile": {
+      "title": "TruckProfile",
+      "description": "The heavy truck diagnostic and usage profile",
+      "type": "object",
+      "properties": {
+        "brand": { "type": "string" },
+        "model": { "type": "string" },
+        "year": { "type": "number" },
+        "plate": { "type": "string" },
+        "currentKm": { "type": "number" },
+        "engineType": { "type": "string" },
+        "lastOilChangeKm": { "type": "number" },
+        "lastTireChangeKm": { "type": "number" },
+        "lastBrakeChangeKm": { "type": "number" }
+      },
+      "required": ["brand", "model", "year", "plate", "currentKm"]
+    },
+    "SOSRequest": {
+      "title": "SOSRequest",
+      "description": "An active emergency roadside rescue alert",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["searching", "accepted", "completed"] },
+        "matchedSupplierId": { "type": "string" },
+        "matchedSupplierName": { "type": "string" },
+        "etaMinutes": { "type": "number" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "type", "description", "status", "timestamp"]
+    },
+    "OrderStats": {
+      "title": "OrderStats",
+      "description": "Analytical statistics on views and closed sales for a supplier",
+      "type": "object",
+      "properties": {
+        "views": { "type": "number" },
+        "clicks": { "type": "number" },
+        "quotesCount": { "type": "number" },
+        "salesClosed": { "type": "number" }
+      },
+      "required": ["views", "clicks", "quotesCount", "salesClosed"]
+    },
+    "Seller": {
+      "title": "Seller",
+      "description": "A parts consultant or vendor associated with a supplier",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "supplierId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "isAuthorized": { "type": "boolean" },
+        "registeredAt": { "type": "string" }
+      },
+      "required": ["id", "supplierId", "name", "email", "phone"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "A feedback review left by truckers for suppliers, or vice versa",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetName": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["supplier", "trucker"] },
+        "reviewerName": { "type": "string" },
+        "reviewerRole": { "type": "string", "enum": ["trucker", "supplier", "seller"] },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "targetId", "targetName", "targetType", "reviewerName", "reviewerRole", "rating", "comment", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/suppliers/{supplierId}": {
+      "schema": { "$ref": "Supplier" },
+      "description": "Collection of all service shops and part sellers"
+    },
+    "/catalog/{itemId}": {
+      "schema": { "$ref": "CatalogItem" },
+      "description": "Global catalog items"
+    },
+    "/chats/{chatId}": {
+      "schema": { "$ref": "Chat" },
+      "description": "Conversations threads"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": { "$ref": "Message" },
+      "description": "Subcollection storing messages for each chat thread"
+    },
+    "/sos_requests/{requestId}": {
+      "schema": { "$ref": "SOSRequest" },
+      "description": "Emergency SOS rescue tickets posted or tracked"
+    },
+    "/truck_profiles/{profileId}": {
+      "schema": { "$ref": "TruckProfile" },
+      "description": "User specific truck profile specs"
+    },
+    "/stats/{statsId}": {
+      "schema": { "$ref": "OrderStats" },
+      "description": "Analytical dashboard metrics for a supplier"
+    },
+    "/sellers/{sellerId}": {
+      "schema": { "$ref": "Seller" },
+      "description": "Consultants and salespersons for suppliers"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "Review" },
+      "description": "Public reviews exchangeable between truckers and suppliers"
+    }
+  }
+}
