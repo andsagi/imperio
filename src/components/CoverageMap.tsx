@@ -139,132 +139,85 @@ export default function CoverageMap({
         
         {/* GOOGLE MAPS PLATFORM REAL INTEGRATION VIEW */}
         <div className="w-full h-full relative" id="google-maps-integration-view">
-          {!hasValidKey ? (
-            /* Splash screen informative card for missing API key */
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 p-6 text-center select-text z-20">
-              <div className="max-w-md bg-[#161616] border border-neutral-800 p-5 rounded-2xl shadow-2xl space-y-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-950/50 border border-orange-500/30 flex items-center justify-center mx-auto text-xl">
-                  ⚠️
-                </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-black text-white uppercase tracking-wider">Chave do Google Maps Requerida</h3>
-                  <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Para visualizar o Mapa Real integrado por satélite e geolocalização exata, você precisa associar uma Chave de API do Google Maps Platform nos Secrets do seu workspace.
-                  </p>
-                </div>
+          <APIProvider apiKey={API_KEY || ''} version="weekly">
+            <Map
+              defaultCenter={CENTER_COORD}
+              defaultZoom={12}
+              mapId="DEMO_MAP_ID"
+              gestureHandling="cooperative"
+              disableDefaultUI={false}
+              internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
+              style={{ width: '100%', height: '100%' }}
+            >
+              {/* Driver locator pin */}
+              <AdvancedMarker position={CENTER_COORD} title="Você (Sua Carga)">
+                <Pin background="#FF8C00" borderColor="#FFFFFF" glyphColor="#000000" scale={1.2}>
+                  🚚
+                </Pin>
+              </AdvancedMarker>
 
-                <div className="bg-black/65 border border-neutral-850 p-3 rounded-xl text-left text-[10px] text-slate-350 space-y-1.5 leading-normal">
-                  <p className="font-black text-orange-400 uppercase tracking-widest text-[9px]">Passo a Passo de Configuração:</p>
-                  <p><strong>1.</strong> Obtenha uma chave no console: <a href="https://console.cloud.google.com/google/maps-apis/start?utm_campaign=gmp-code-assist-ais" target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline inline-flex items-center gap-0.5 font-bold">Obter Chave <ExternalLink className="w-3 h-3" /></a></p>
-                  <p><strong>2.</strong> Abra as <strong>Configurações do AI Studio</strong> (ícone de engrenagem ⚙️ no canto superior direito).</p>
-                  <p><strong>3.</strong> Acesse a aba <strong>Secrets</strong> e clique em <strong>Add Secret</strong>.</p>
-                  <p><strong>4.</strong> Digite o nome <code>GOOGLE_MAPS_PLATFORM_KEY</code> e insira a sua chave como valor.</p>
-                  <p className="text-slate-500 font-bold italic mt-1">O projeto irá se recompilar automaticamente e o Mapa Real carregará em tempo real!</p>
-                </div>
+              {/* Active suppliers pins on real map */}
+              {suppliers.filter(getIsSupplierVisible).map((supplier) => {
+                const coords = getGoogleCoords(supplier);
+                const isSelected = activeSupplierId === supplier.id || selectedGoogleSupplier?.id === supplier.id;
+                const hexColor = getCategoryHexColor(supplier.category);
+                const emoji = getCategoryEmoji(supplier.category);
 
-                <div className="flex gap-2 justify-center">
-                  <button
-                    type="button"
-                    onClick={() => setShowKeyHelp(!showKeyHelp)}
-                    className="px-4 py-2 bg-[#FF8C00] text-black rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-orange-500 cursor-pointer"
+                return (
+                  <AdvancedMarker
+                    key={supplier.id}
+                    position={coords}
+                    title={supplier.name}
+                    onClick={() => {
+                      setSelectedGoogleSupplier(supplier);
+                      onSelectSupplier(supplier);
+                    }}
                   >
-                    Como Obter Grátis
-                  </button>
-                </div>
-
-                {showKeyHelp && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="text-[10px] text-left text-slate-400 leading-normal border-t border-neutral-850 pt-2.5 space-y-1"
-                  >
-                    <p>O Google Maps Platform oferece um crédito gratuito mensal de <strong>$200 dólares</strong> para todos os desenvolvedores. Esse crédito cobre até <strong>28.000 carregamentos de mapa</strong> mensais de forma 100% gratuita para testes e homologação.</p>
-                  </motion.div>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* REAL GOOGLE MAPS PLATFORM ELEMENT */
-            <APIProvider apiKey={API_KEY} version="weekly">
-              <Map
-                defaultCenter={CENTER_COORD}
-                defaultZoom={12}
-                mapId="DEMO_MAP_ID"
-                gestureHandling="cooperative"
-                disableDefaultUI={false}
-                internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
-                style={{ width: '100%', height: '100%' }}
-              >
-                {/* Driver locator pin */}
-                <AdvancedMarker position={CENTER_COORD} title="Você (Sua Carga)">
-                  <Pin background="#FF8C00" borderColor="#FFFFFF" glyphColor="#000000" scale={1.2}>
-                    🚚
-                  </Pin>
-                </AdvancedMarker>
-
-                {/* Active suppliers pins on real map */}
-                {suppliers.filter(getIsSupplierVisible).map((supplier) => {
-                  const coords = getGoogleCoords(supplier);
-                  const isSelected = activeSupplierId === supplier.id || selectedGoogleSupplier?.id === supplier.id;
-                  const hexColor = getCategoryHexColor(supplier.category);
-                  const emoji = getCategoryEmoji(supplier.category);
-
-                  return (
-                    <AdvancedMarker
-                      key={supplier.id}
-                      position={coords}
-                      title={supplier.name}
-                      onClick={() => {
-                        setSelectedGoogleSupplier(supplier);
-                        onSelectSupplier(supplier);
-                      }}
+                    <Pin 
+                      background={hexColor} 
+                      borderColor={isSelected ? "#FFFFFF" : "#1A1A1A"} 
+                      glyphColor="#FFFFFF"
+                      scale={isSelected ? 1.25 : 1}
                     >
-                      <Pin 
-                        background={hexColor} 
-                        borderColor={isSelected ? "#FFFFFF" : "#1A1A1A"} 
-                        glyphColor="#FFFFFF"
-                        scale={isSelected ? 1.25 : 1}
-                      >
-                        <span className="text-xs">{emoji}</span>
-                      </Pin>
-                    </AdvancedMarker>
-                  );
-                })}
+                      <span className="text-xs">{emoji}</span>
+                    </Pin>
+                  </AdvancedMarker>
+                );
+              })}
 
-                {/* Info Window overlay for clicked supplier on real map */}
-                {selectedGoogleSupplier && (
-                  <InfoWindow
-                    position={getGoogleCoords(selectedGoogleSupplier)}
-                    onCloseClick={() => setSelectedGoogleSupplier(null)}
-                  >
-                    <div className="p-1.5 text-black font-sans max-w-[200px] text-left select-text">
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs">{getCategoryEmoji(selectedGoogleSupplier.category)}</span>
-                        <span className="text-[8px] font-black uppercase tracking-wider text-[#FF8C00]">{selectedGoogleSupplier.category}</span>
-                      </div>
-                      <h4 className="text-[11px] font-bold text-neutral-900 mt-0.5 leading-tight">{selectedGoogleSupplier.name}</h4>
-                      <p className="text-[9px] text-neutral-650 mt-1 leading-normal">{selectedGoogleSupplier.specialty}</p>
-                      
-                      <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-neutral-200 text-[9px] font-mono">
-                        <span className="font-extrabold text-neutral-800">Distância: {selectedGoogleSupplier.distance} KM</span>
-                        <span className="text-emerald-600 font-extrabold bg-emerald-50 px-1 rounded">⭐ {selectedGoogleSupplier.rating}</span>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onSelectSupplier(selectedGoogleSupplier);
-                        }}
-                        className="w-full mt-2 bg-[#FF8C00] hover:bg-orange-500 text-black text-[9px] font-black uppercase tracking-wider py-1.5 rounded text-center transition-colors block cursor-pointer"
-                      >
-                        Solicitar Orçamento / Chat
-                      </button>
+              {/* Info Window overlay for clicked supplier on real map */}
+              {selectedGoogleSupplier && (
+                <InfoWindow
+                  position={getGoogleCoords(selectedGoogleSupplier)}
+                  onCloseClick={() => setSelectedGoogleSupplier(null)}
+                >
+                  <div className="p-1.5 text-black font-sans max-w-[200px] text-left select-text">
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs">{getCategoryEmoji(selectedGoogleSupplier.category)}</span>
+                      <span className="text-[8px] font-black uppercase tracking-wider text-[#FF8C00]">{selectedGoogleSupplier.category}</span>
                     </div>
-                  </InfoWindow>
-                )}
-              </Map>
-            </APIProvider>
-          )}
+                    <h4 className="text-[11px] font-bold text-neutral-900 mt-0.5 leading-tight">{selectedGoogleSupplier.name}</h4>
+                    <p className="text-[9px] text-neutral-650 mt-1 leading-normal">{selectedGoogleSupplier.specialty}</p>
+                    
+                    <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-neutral-200 text-[9px] font-mono">
+                      <span className="font-extrabold text-neutral-800">Distância: {selectedGoogleSupplier.distance} KM</span>
+                      <span className="text-emerald-600 font-extrabold bg-emerald-50 px-1 rounded">⭐ {selectedGoogleSupplier.rating}</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onSelectSupplier(selectedGoogleSupplier);
+                      }}
+                      className="w-full mt-2 bg-[#FF8C00] hover:bg-orange-500 text-black text-[9px] font-black uppercase tracking-wider py-1.5 rounded text-center transition-colors block cursor-pointer"
+                    >
+                      Solicitar Orçamento / Chat
+                    </button>
+                  </div>
+                </InfoWindow>
+              )}
+            </Map>
+          </APIProvider>
         </div>
       </div>
 
