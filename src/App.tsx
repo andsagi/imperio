@@ -15,6 +15,7 @@ import SOSModal from './components/SOSModal';
 import NicheSelector from './components/NicheSelector';
 import ImperioLogo from './components/ImperioLogo';
 import LegalConsentModal from './components/LegalConsentModal';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 // Data layers
 import { Supplier, CatalogItem, Review } from './types';
@@ -767,6 +768,9 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Persistent floating PWA custom installer prompt */}
+      <PWAInstallPrompt />
     </div>
   );
 }
