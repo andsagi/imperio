@@ -10,16 +10,28 @@
   "categories": ["business", "utilities", "navigation"],
   "icons": [
     {
-      "src": "https://img.icons8.com/color/192/000000/truck.png",
+      "src": "/app_icon_imperio.jpg",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/jpeg",
+      "purpose": "any"
     },
     {
-      "src": "https://img.icons8.com/color/512/000000/truck.png",
+      "src": "/app_icon_imperio.jpg",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/app_icon_imperio.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/app_icon_imperio.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
     }
   ]
 }
