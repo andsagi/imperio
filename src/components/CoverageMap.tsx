@@ -145,7 +145,7 @@ export default function CoverageMap({
               defaultZoom={12}
               mapId="DEMO_MAP_ID"
               gestureHandling="cooperative"
-              disableDefaultUI={false}
+              disableDefaultUI={true}
               internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
               style={{ width: '100%', height: '100%' }}
             >
