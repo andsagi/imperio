@@ -8,7 +8,7 @@ import {
   Search, MapPin, Phone, MessageSquare, AlertTriangle, Truck, 
   Wrench, Battery, Fuel, Settings, AlertCircle, ShoppingCart, 
   Send, User, Calendar, Star, CheckCircle, Package, ArrowLeft, ShieldCheck, Crown,
-  Mic, MicOff
+  Mic, MicOff, PhoneCall, ExternalLink, Navigation, SlidersHorizontal, Layers, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Supplier, CatalogItem, Chat, TruckProfile, Message, Review } from '../types';
@@ -72,6 +72,7 @@ export default function TruckerHome({
   const [searchRadius, setSearchRadius] = useState<number>(50); // Default search radius of 50 km
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [showSOSConfirm, setShowSOSConfirm] = useState(false);
+  const [homeViewMode, setHomeViewMode] = useState<'lista' | 'mapa'>('lista');
   
   // Direct Chat Modal States
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
@@ -501,265 +502,368 @@ export default function TruckerHome({
       <main className="max-w-4xl mx-auto w-full p-4 flex-1">
         
         {activeTab === 'inicio' && (
-          <div className="space-y-6" id="inicio-view-wrapper">
+          <div className="space-y-5" id="inicio-view-wrapper">
             
-            {/* Banner Carousel - Visual Slider */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FF8C00] to-[#E67E00] text-black p-6 md:p-8 shadow-xl premium-glow flex items-center h-auto md:h-56 min-h-[220px]">
-              <div className="absolute top-4 right-4 p-1 shrink-0 z-10">
-                <span className="bg-black text-white font-black text-[9px] uppercase tracking-wider px-3 py-1 rounded border border-black/15">
-                  Oferta do Dia
+            {/* 1. TOP QUICK SEARCH & VOICE BAR */}
+            <div className="bg-[#181818] border border-neutral-800 p-4 rounded-2xl shadow-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                    <Search className="w-4 h-4 text-[#FF8C00]" />
+                    <span>O que seu caminhão precisa agora?</span>
+                  </h2>
+                  <p className="text-[11px] text-slate-400 font-medium">Encontre autopeças, mecânicos ou socorro no trecho</p>
+                </div>
+                <span className="text-[10px] font-black text-[#FF8C00] bg-[#FF8C00]/10 border border-[#FF8C00]/30 px-2 py-0.5 rounded-full uppercase">
+                  Radar {searchRadius} KM
                 </span>
               </div>
-              <div className="max-w-xl space-y-2 z-10">
-                <span className="text-black/85 text-[10px] font-black uppercase tracking-widest">Tietê Autopeças</span>
-                <h2 className="text-xl md:text-3xl font-black text-black leading-none tracking-tighter">PNEU BRIDGESTONE RADIAL TRAÇÃO COM 20% DO APP!</h2>
-                <p className="text-xs text-black/80 font-medium">
-                  Turbinas, embreagens Sachs e filtros lubrificantes originais a pronta entrega nas principais rodovias do estado de São Paulo. Envie orçamentos no chat.
-                </p>
-                <div className="pt-2">
-                  <button 
-                    onClick={() => {
-                      const tiet = suppliers.find(s => s.id === 's1');
-                      if (tiet) setSelectedSupplier(tiet);
-                    }}
-                    className="bg-black text-white text-xs font-black uppercase tracking-wider px-5 py-2.5 rounded-full hover:bg-neutral-900 transition-all cursor-pointer shadow-md shadow-black/10"
-                  >
-                    Ver Oferta Diária
-                  </button>
-                </div>
+
+              {/* Input + Voice Button */}
+              <div className="relative flex items-center">
+                <Search className="absolute left-3.5 text-slate-500 w-4 h-4 pointer-events-none" />
+                <input
+                  id="home-fast-search-input"
+                  type="text"
+                  placeholder={isListening ? "Ouvindo... Fale a peça ou serviço..." : "Buscar peça, oficina, borracharia ou fornecedor..."}
+                  value={supplierSearchQuery}
+                  onChange={(e) => setSupplierSearchQuery(e.target.value)}
+                  className={`w-full bg-[#121212] border rounded-xl pl-10 pr-12 py-3 text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none transition-all ${
+                    isListening 
+                      ? 'border-red-500 ring-2 ring-red-500/20 text-red-300' 
+                      : 'border-neutral-800 focus:border-[#FF8C00]'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={handleToggleVoiceSearch}
+                  title={isListening ? "Parar de ouvir" : "Falar por voz (mãos livres)"}
+                  className={`absolute right-1.5 h-9 w-9 flex items-center justify-center rounded-lg transition-all cursor-pointer ${
+                    isListening
+                      ? 'bg-red-500 text-white animate-pulse'
+                      : 'hover:bg-neutral-800 text-slate-400 hover:text-[#FF8C00]'
+                  }`}
+                >
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
               </div>
-              <div className="absolute right-8 bottom-0 opacity-10 pointer-events-none hidden md:block">
-                 <Truck className="w-52 h-52 text-black" strokeWidth={1} />
+
+              {/* Fast Tag Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-[10px] font-bold">
+                <span className="text-slate-500 uppercase text-[9px] tracking-wider shrink-0 mr-1">Rápido:</span>
+                {[
+                  { label: 'Embreagem', query: 'Embreagem' },
+                  { label: 'Turbina', query: 'Turbina' },
+                  { label: 'Borracharia 24h', query: 'Borracharia' },
+                  { label: 'Guincho Pesado', query: 'Guincho' },
+                  { label: 'Freios & Pastilhas', query: 'Freio' },
+                  { label: 'Óleo & Filtros', query: 'Filtro' },
+                ].map((chip, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setSupplierSearchQuery(chip.query)}
+                    className="px-2.5 py-1 bg-[#121212] hover:bg-[#FF8C00]/10 hover:text-[#FF8C00] border border-neutral-800 hover:border-[#FF8C00]/40 rounded-lg text-slate-300 shrink-0 transition-colors cursor-pointer"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Quick action Emergency SOS Alert banner component */}
-            <div className="bg-gradient-to-r from-red-600/10 to-red-600/2 border border-red-500/30 rounded-2xl p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-3 bg-red-600 rounded-xl text-white">
-                  <AlertTriangle className="w-6 h-6 animate-pulse" />
+            {/* 2. EMERGENCY SOS RADAR BANNER */}
+            <div className="bg-gradient-to-r from-red-950/40 via-[#181818] to-[#181818] border border-red-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center space-x-3 text-center sm:text-left">
+                <div className="p-3 bg-red-600/20 border border-red-500/40 rounded-xl text-red-500 shrink-0 animate-pulse">
+                  <AlertTriangle className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-white text-sm md:text-base">Quebrou no trecho rodoviário?</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">Acione nosso radar de resgate mecânico de 1 clique num raio de 50km.</p>
+                  <div className="flex items-center justify-center sm:justify-start gap-2">
+                    <h3 className="font-extrabold text-white text-sm">Emergência / Quebrou na Pista?</h3>
+                    <span className="bg-red-600 text-white font-black text-[9px] uppercase px-1.5 py-0.5 rounded animate-pulse">24H</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">Dispare alerta instantâneo para todas as oficinas e guinchos em 50km.</p>
                 </div>
               </div>
               <button 
                 id="big-sos-floating-btn"
                 onClick={() => setShowSOSConfirm(true)}
-                className="bg-red-600 hover:bg-red-700 transition-colors text-white font-extrabold text-xs py-2.5 px-4 rounded-xl cursor-pointer shadow-lg shadow-red-600/20 uppercase shrink-0"
+                className="w-full sm:w-auto bg-red-600 hover:bg-red-700 active:scale-95 transition-all text-white font-black text-xs py-3 px-6 rounded-xl cursor-pointer shadow-lg shadow-red-600/20 uppercase tracking-wider shrink-0 flex items-center justify-center gap-2"
               >
-                Acionar SOS 🆘
+                <span>Acionar Socorro SOS</span>
+                <span>🚨</span>
               </button>
             </div>
 
-            {/* Category selection grid */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-300 flex items-center space-x-2">
-                <span>Categorias de Atendimento</span>
-              </h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3" id="categories-grid-selection">
-                {[
-                  { id: 'todos', title: 'Ver Todos', icon: '📋' },
-                  { id: 'pecas', title: 'Peças', icon: '⚙️' },
-                  { id: 'mecanica', title: 'Mecânica', icon: '🔧' },
-                  { id: 'pneus', title: 'Pneus', icon: '🛞' },
-                  { id: 'eletrica', title: 'Elétrica', icon: '⚡' },
-                  { id: 'guincho', title: 'Guincho', icon: '🛻' },
-                  { id: 'postos', title: 'Postos', icon: '⛽' },
-                ].map((cat) => (
+            {/* 3. FOUR CORE DIRECT CATEGORIES */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-300 flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5 text-[#FF8C00]" />
+                  <span>Serviços Rápidos de Atendimento</span>
+                </h3>
+                {selectedCategory !== 'todos' && (
                   <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={`p-3 rounded-xl border flex flex-col items-center text-center justify-center transition-all group cursor-pointer ${
-                      selectedCategory === cat.id
-                        ? 'bg-[#FF8C00]/10 border-[#FF8C00] text-white shadow-lg shadow-[#FF8C00]/5'
-                        : 'bg-[#1E1E1E] border-neutral-800 text-slate-400 hover:border-neutral-700'
+                    onClick={() => setSelectedCategory('todos')}
+                    className="text-[10px] text-[#FF8C00] font-black uppercase tracking-wider hover:underline cursor-pointer"
+                  >
+                    Ver Todas
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="categories-grid-selection">
+                {[
+                  { id: 'pecas', title: 'Peças Diesel', desc: 'Estoque & Cotações', icon: '⚙️' },
+                  { id: 'mecanica', title: 'Mecânica Diesel', desc: 'Oficinas & Socorro', icon: '🔧' },
+                  { id: 'pneus', title: 'Borracharia 24h', desc: 'Pneus & Troca', icon: '🛞' },
+                  { id: 'guincho', title: 'Guincho Pesado', desc: 'Resgate na Pista', icon: '🛻' },
+                ].map((cat) => {
+                  const isSelected = selectedCategory === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setSelectedCategory(isSelected ? 'todos' : cat.id)}
+                      className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all group cursor-pointer ${
+                        isSelected
+                          ? 'bg-[#FF8C00]/15 border-[#FF8C00] text-white shadow-lg shadow-[#FF8C00]/10'
+                          : 'bg-[#181818] border-neutral-800 text-slate-300 hover:border-neutral-700 hover:bg-[#1E1E1E]'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-2xl group-hover:scale-110 transition-transform">{cat.icon}</span>
+                        {isSelected && (
+                          <span className="w-2 h-2 rounded-full bg-[#FF8C00] animate-ping" />
+                        )}
+                      </div>
+                      <div>
+                        <span className="block font-black text-xs text-white leading-tight">{cat.title}</span>
+                        <span className="block text-[10px] text-slate-500 font-medium mt-0.5">{cat.desc}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Extra categories pill line */}
+              <div className="flex items-center gap-2 pt-1 overflow-x-auto pb-1 scrollbar-none">
+                <span className="text-slate-500 text-[10px] font-bold shrink-0">Outros:</span>
+                {[
+                  { id: 'eletrica', title: '⚡ Auto Elétrica' },
+                  { id: 'postos', title: '⛽ Postos & Diesel S10' },
+                  { id: 'todos', title: '📋 Todos os Fornecedores' },
+                ].map(extra => (
+                  <button
+                    key={extra.id}
+                    onClick={() => setSelectedCategory(extra.id)}
+                    className={`px-3 py-1 rounded-lg text-[10px] font-bold border transition-colors shrink-0 cursor-pointer ${
+                      selectedCategory === extra.id
+                        ? 'bg-[#FF8C00] text-black border-[#FF8C00] font-black'
+                        : 'bg-[#181818] border-neutral-800 text-slate-400 hover:text-white'
                     }`}
                   >
-                    <span className="text-xl mb-1 group-hover:scale-110 transition-transform">{cat.icon}</span>
-                    <span className="font-extrabold text-[11px] tracking-tight whitespace-nowrap">{cat.title}</span>
+                    {extra.title}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Search Radius Slider filter component */}
-            <div className="bg-[#1E1E1E] border border-neutral-800 rounded-2xl p-4 space-y-3" id="search-radius-slider-filter">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-lg">📍</span>
-                  <div>
-                    <h4 className="text-xs font-black uppercase tracking-widest text-[#FF8C00]">Raio de Busca</h4>
-                    <p className="text-[10px] text-slate-500 font-bold">Limitar prestadores pela distância do seu KM</p>
-                  </div>
-                </div>
-                <div className="bg-[#FF8C00]/10 border border-[#FF8C00]/30 px-3 py-1 rounded-xl text-[#FF8C00] font-black text-xs font-mono">
-                  Até {searchRadius} KM
-                </div>
+            {/* 4. VIEW SELECTOR (LISTA vs MAPA) & RADIUS SELECTOR */}
+            <div className="bg-[#181818] border border-neutral-800 rounded-2xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+              {/* View Switcher Tabs */}
+              <div className="flex items-center bg-[#121212] border border-neutral-800 p-1 rounded-xl w-full sm:w-auto">
+                <button
+                  onClick={() => setHomeViewMode('lista')}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    homeViewMode === 'lista'
+                      ? 'bg-[#FF8C00] text-black shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Lista Direta ({orderedSuppliers.length})</span>
+                </button>
+                <button
+                  onClick={() => setHomeViewMode('mapa')}
+                  className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                    homeViewMode === 'mapa'
+                      ? 'bg-[#FF8C00] text-black shadow-md'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>Radar no Mapa</span>
+                </button>
               </div>
-              
-              <div className="flex items-center space-x-4">
-                <span className="text-[11px] font-black text-slate-500 font-mono">5 KM</span>
-                <input
-                  id="search-radius-range-input"
-                  type="range"
-                  min="5"
-                  max="50"
-                  step="1"
-                  value={searchRadius}
-                  onChange={(e) => setSearchRadius(Number(e.target.value))}
-                  className="flex-1 accent-[#FF8C00] bg-neutral-800 h-1.5 rounded-lg appearance-none cursor-pointer"
-                />
-                <span className="text-[11px] font-black text-slate-500 font-mono">50 KM</span>
-              </div>
-              
-              {/* Reset filter button if it's not at maximum */}
-              {searchRadius < 50 && (
-                <div className="flex justify-end">
+
+              {/* Distance Radius Quick Selector */}
+              <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mr-1">Raio:</span>
+                {[
+                  { km: 15, label: '15 km' },
+                  { km: 30, label: '30 km' },
+                  { km: 50, label: '50 km' },
+                ].map(r => (
                   <button
-                    type="button"
-                    onClick={() => setSearchRadius(50)}
-                    className="text-[10px] font-black text-[#FF8C00] hover:underline cursor-pointer"
+                    key={r.km}
+                    onClick={() => setSearchRadius(r.km)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black border transition-all cursor-pointer ${
+                      searchRadius === r.km
+                        ? 'bg-[#FF8C00]/20 border-[#FF8C00] text-[#FF8C00]'
+                        : 'bg-[#121212] border-neutral-800 text-slate-400 hover:text-white'
+                    }`}
                   >
-                    Resetar para Todo o Trecho (50 KM)
+                    {r.label}
                   </button>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
 
-            {/* Interactive Visual Coverage Map */}
-            <CoverageMap
-              suppliers={suppliers}
-              selectedCategory={selectedCategory}
-              onSelectSupplier={(supplier) => setSelectedSupplier(supplier)}
-              activeSupplierId={selectedSupplier?.id}
-              searchRadius={searchRadius}
-            />
-
-            {/* Nearest Suppliers list */}
-            <div className="space-y-4" id="nearest-suppliers-listing">
-              <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-neutral-800 pb-2 gap-2">
-                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">
-                  Fornecedores Próximos ({filteredSuppliers.length})
-                </h3>
-                <span className="text-xs text-slate-500">Ordenado por KM</span>
-              </div>
-
-              {/* Search bar inside Nearest Suppliers */}
-              <div className="relative" id="nearest-suppliers-search-container">
-                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-slate-500" />
-                </span>
-                <input
-                  id="supplier-search-by-name-input"
-                  type="text"
-                  placeholder="Pesquisar fornecedores por nome (ex: Tietê, Borracharia)..."
-                  value={supplierSearchQuery}
-                  onChange={(e) => setSupplierSearchQuery(e.target.value)}
-                  className="block w-full pl-10 pr-10 py-3 bg-[#1C1C1C] border border-neutral-800 focus:border-[#FF8C00] rounded-xl text-xs md:text-sm text-white placeholder-slate-500 focus:outline-none transition-all"
+            {/* 5. CONTENT: EITHER INTERACTIVE MAP OR CLEAN SUPPLIER LIST */}
+            {homeViewMode === 'mapa' && (
+              <div className="space-y-3">
+                <CoverageMap
+                  suppliers={suppliers}
+                  selectedCategory={selectedCategory}
+                  onSelectSupplier={(supplier) => setSelectedSupplier(supplier)}
+                  activeSupplierId={selectedSupplier?.id}
+                  searchRadius={searchRadius}
                 />
-                {supplierSearchQuery && (
+              </div>
+            )}
+
+            {/* SUPPLIERS LISTING (Shown in both or list mode) */}
+            <div className="space-y-3" id="nearest-suppliers-listing">
+              {homeViewMode === 'mapa' && (
+                <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 pt-2 border-t border-neutral-800">
+                  Lista dos Fornecedores no Mapa ({orderedSuppliers.length})
+                </h4>
+              )}
+
+              {orderedSuppliers.length === 0 ? (
+                <div className="p-8 text-center bg-[#181818] border border-dashed border-neutral-800 rounded-2xl space-y-2">
+                  <span className="text-3xl">🔍</span>
+                  <h4 className="text-sm font-black text-white">Nenhum fornecedor encontrado no raio de {searchRadius} KM</h4>
+                  <p className="text-xs text-slate-500">Tente expandir o raio de busca para 50 km ou limpe os termos de pesquisa.</p>
                   <button
                     type="button"
-                    onClick={() => setSupplierSearchQuery('')}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-xs text-slate-500 hover:text-white font-medium"
+                    onClick={() => {
+                      setSearchRadius(50);
+                      setSelectedCategory('todos');
+                      setSupplierSearchQuery('');
+                    }}
+                    className="mt-2 px-4 py-2 bg-[#FF8C00] text-black text-xs font-black rounded-xl transition-all hover:bg-orange-500 cursor-pointer"
                   >
-                    ✕
+                    Ver Todos os Fornecedores do Trecho (50 KM)
                   </button>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                {filteredSuppliers.length === 0 && (
-                  <div className="p-8 text-center bg-[#1E1E1E] border border-dashed border-neutral-800 rounded-2xl space-y-2">
-                    <span className="text-3xl">🔍</span>
-                    <h4 className="text-sm font-black text-white">Nenhum fornecedor encontrado</h4>
-                    <p className="text-xs text-slate-500">Tente buscar por termos diferentes ou ajuste o filtro de categorias.</p>
-                    {supplierSearchQuery && (
-                      <button
-                        type="button"
-                        onClick={() => setSupplierSearchQuery('')}
-                        className="mt-2 px-3 py-1.5 bg-[#FF8C00]/10 border border-[#FF8C00]/30 hover:bg-[#FF8C00]/20 text-[#FF8C00] text-xs font-bold rounded-lg transition-colors cursor-pointer animate-fade-in"
-                      >
-                        Limpar Busca
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {orderedSuppliers.map((supplier) => (
+                </div>
+              ) : (
+                orderedSuppliers.map((supplier) => (
                   <motion.div
                     key={supplier.id}
                     layoutId={`card-${supplier.id}`}
                     onClick={() => setSelectedSupplier(supplier)}
-                    className="p-4 bg-[#1E1E1E] border border-neutral-800 hover:border-[#FF8C00]/40 rounded-2xl transition-all cursor-pointer flex justify-between gap-4 items-stretch group hover:shadow-2xl hover:shadow-[#FF8C00]/5"
+                    className="p-4 bg-[#181818] border border-neutral-800 hover:border-[#FF8C00]/40 rounded-2xl transition-all cursor-pointer flex flex-col sm:flex-row justify-between gap-4 items-stretch group hover:shadow-xl hover:shadow-black/40"
                   >
-                    <div className="flex items-start space-x-3.5 flex-1">
-                      <div className="p-3 bg-[#1A1A1A] border border-neutral-800 rounded-xl text-[#FF8C00] group-hover:bg-[#FF8C00] group-hover:text-black group-hover:border-[#FF8C00] transition-all duration-200 shrink-0">
+                    {/* Left info column */}
+                    <div className="flex items-start space-x-3.5 flex-1 min-w-0">
+                      <div className="p-3 bg-[#121212] border border-neutral-800 rounded-xl text-[#FF8C00] group-hover:bg-[#FF8C00] group-hover:text-black group-hover:border-[#FF8C00] transition-all duration-200 shrink-0">
                         <Package className="w-6 h-6 stroke-[2]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center flex-wrap gap-2">
-                          <h4 className="font-black text-white group-hover:text-[#FF8C00] transition-colors text-sm md:text-base leading-tight truncate">{supplier.name}</h4>
+                          <h4 className="font-black text-white group-hover:text-[#FF8C00] transition-colors text-sm md:text-base leading-tight truncate">
+                            {supplier.name}
+                          </h4>
                           {supplier.isVerified && (
                             <span className="bg-[#FF8C00]/10 border border-[#FF8C00]/20 text-[#FF8C00] font-black text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0">
                               Selo VIP
                             </span>
                           )}
-                          {supplier.isFoundingPartner && (
-                            <span className="bg-purple-500/10 border border-purple-500/20 text-purple-400 font-extrabold text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded shrink-0">
-                              Fundador
-                            </span>
-                          )}
+                          <span className={`flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border shrink-0 ${
+                            supplier.isOnline
+                              ? 'text-green-400 bg-green-500/10 border-green-500/30'
+                              : 'text-slate-500 bg-slate-500/10 border-slate-500/20'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${supplier.isOnline ? 'bg-green-400 animate-pulse' : 'bg-slate-500'}`} />
+                            <span>{supplier.isOnline ? 'Online' : 'Fechado'}</span>
+                          </span>
                         </div>
 
                         <p className="text-xs text-slate-400 mt-1 font-medium truncate">{supplier.address}</p>
-                        <p className="text-xs text-slate-500 mt-0.5 truncate">{supplier.specialty}</p>
+                        <p className="text-xs text-[#FF8C00]/90 mt-0.5 font-medium truncate">{supplier.specialty}</p>
 
-                        <div className="flex items-center space-x-3 mt-2.5">
+                        <div className="flex items-center space-x-3 mt-2">
                           <div className="flex items-center text-amber-500 text-xs font-bold shrink-0">
                             <Star className="w-3.5 h-3.5 fill-amber-500 mr-1 shrink-0" />
-                            <span>{supplier.rating} ({supplier.reviewsCount})</span>
+                            <span>{supplier.rating} ({supplier.reviewsCount} avaliações)</span>
                           </div>
                           <span className="text-slate-700 text-xs shrink-0">•</span>
-                          <span className="text-xs text-[#FF8C00] font-black shrink-0">{supplier.distance} km de você</span>
+                          <span className="text-xs text-white font-extrabold bg-[#FF8C00]/10 border border-[#FF8C00]/20 px-2 py-0.5 rounded-md shrink-0">
+                            ⚡ {supplier.distance} km de você
+                          </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="shrink-0 flex flex-col justify-between items-end space-y-2 select-none">
-                      <span className={`flex items-center space-x-1.5 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-full border ${
-                        supplier.isOnline
-                          ? 'text-green-500 bg-green-500/5 border-green-500/20 animate-pulse'
-                          : 'text-slate-500 bg-slate-500/5 border-slate-500/20'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${supplier.isOnline ? 'bg-green-500' : 'bg-slate-500'}`} />
-                        <span>{supplier.isOnline ? 'Online' : 'Offline'}</span>
-                      </span>
-
+                    {/* Right Action buttons */}
+                    <div className="shrink-0 flex sm:flex-col justify-end sm:justify-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-neutral-800 select-none">
+                      {/* 1-Click Chat In App */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           setChatModalSupplier(supplier);
-                          setChatModalInitialMsg('');
+                          setChatModalInitialMsg(`Olá! Preciso de cotação para o meu caminhão ${truck.brand} ${truck.model}.`);
                           setIsChatModalOpen(true);
                         }}
-                        className={`px-3 py-1.5 rounded-xl font-extrabold text-[10px] md:text-xs uppercase tracking-wider flex items-center justify-center space-x-1 transition-all duration-200 outline-none border cursor-pointer active:scale-95 ${
-                          supplier.isOnline
-                            ? 'bg-[#FF8C00] border-[#FF8C00] text-black hover:bg-orange-500 shadow-md shadow-orange-500/15'
-                            : 'bg-neutral-800 border-slate-800 text-slate-300 hover:bg-neutral-700 hover:text-white'
-                        }`}
-                        title="Falar Agora"
+                        className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 bg-[#FF8C00] text-black hover:bg-orange-500 transition-all shadow-md active:scale-95 cursor-pointer"
+                        title="Negociar no Chat do App"
                       >
                         <MessageSquare className="w-3.5 h-3.5 stroke-[2.5]" />
-                        <span>Falar Agora</span>
+                        <span>Cotação / Chat</span>
                       </button>
+
+                      {/* 1-Click WhatsApp Direct */}
+                      <a
+                        href={`https://wa.me/5511999999999?text=${encodeURIComponent(`Olá ${supplier.name}, vim pelo app IMPÉRIO Autopeças e gostaria de cotar peças para o ${truck.brand} ${truck.model}.`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 sm:flex-none px-3.5 py-2 rounded-xl font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 bg-emerald-600/15 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition-all cursor-pointer"
+                        title="Abrir WhatsApp direto"
+                      >
+                        <PhoneCall className="w-3.5 h-3.5" />
+                        <span>WhatsApp</span>
+                      </a>
                     </div>
                   </motion.div>
-                ))}
+                ))
+              )}
+            </div>
+
+            {/* Daily Offer Promo Card */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FF8C00] to-[#D97706] text-black p-5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="space-y-1 text-center sm:text-left">
+                <span className="bg-black text-white font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded">
+                  Destaque da Rodovia
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-black leading-tight">
+                  Tietê Autopeças: Embreagens e Turbinas a Pronta Entrega
+                </h3>
+                <p className="text-xs text-black/80 font-medium max-w-md">
+                  Envie sua cotação diretamente aos vendedores no plantão com garantia de compatibilidade.
+                </p>
               </div>
+              <button 
+                onClick={() => {
+                  const tiet = suppliers.find(s => s.id === 's1');
+                  if (tiet) setSelectedSupplier(tiet);
+                }}
+                className="bg-black text-white text-xs font-black uppercase tracking-wider px-5 py-2.5 rounded-xl hover:bg-neutral-900 transition-all cursor-pointer shadow-md shrink-0"
+              >
+                Ver Fornecedor
+              </button>
             </div>
 
             {/* Supplier Detail Sub-Panel Overlay */}
