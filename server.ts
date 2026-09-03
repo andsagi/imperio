@@ -1,5 +1,6 @@
 import express from "express";
 import { createServer as createHttpServer } from "http";
+import fs from "fs";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
@@ -51,11 +52,17 @@ async function startServer() {
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
-        hmr: { server: httpServer },
+        hmr: false,
+        watch: null,
       },
-      appType: "spa",
+      // Use custom mode so Vite does not rewrite the HTML and inject
+      // @vite/client, whose WebSocket is unavailable through Preview.
+      appType: "custom",
     });
     app.use(vite.middlewares);
+    app.get("*", (_req, res) => {
+      res.type("html").send(fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8"));
+    });
   } else {
     console.log("Serving static production build...");
     const distPath = path.join(process.cwd(), "dist");

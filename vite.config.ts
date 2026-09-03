@@ -15,11 +15,11 @@ export default defineConfig(() => {
       },
     },
     server: {
-      // Disable HMR only in environments that explicitly opt out.
-      // server.ts passes its HTTP server to Vite so the WebSocket handshake
-      // works correctly through the preview proxy.
-      hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // The preview proxy does not expose Vite's dev WebSocket reliably.
+      // Disable HMR so Vite does not inject @vite/client, which otherwise
+      // repeatedly reports "WebSocket closed without opened" in Preview.
+      hmr: false,
+      watch: null,
     },
   };
 });
