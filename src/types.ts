@@ -77,6 +77,11 @@ export interface SOSRequest {
   matchedSupplierName?: string;
   etaMinutes?: number;
   timestamp: string;
+  highway?: string;
+  km?: number;
+  driverName?: string;
+  truckModel?: string;
+  responseTimeMinutes?: number;
 }
 
 export interface OrderStats {

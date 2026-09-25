@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Search, MapPin, Phone, MessageSquare, AlertTriangle, Truck, 
   Wrench, Battery, Fuel, Settings, AlertCircle, ShoppingCart, 
@@ -18,6 +18,7 @@ import { db } from '../firebase';
 import CoverageMap from './CoverageMap';
 import ChatModal from './ChatModal';
 import ImperioLogo from './ImperioLogo';
+import { useRenderProfiler, perfMonitor, FastSearchIndex } from '../services/perfMonitor';
 
 interface TruckerHomeProps {
   userName: string;
@@ -48,6 +49,7 @@ export default function TruckerHome({
   googleToken = null,
   onDeleteAccount
 }: TruckerHomeProps) {
+  useRenderProfiler('TruckerHome');
   const [activeTab, setActiveTab] = useState<'inicio' | 'pecas' | 'chat' | 'ranking' | 'perfil'>('inicio');
   const [selectedZoomPhoto, setSelectedZoomPhoto] = useState<string | null>(null);
 
@@ -82,6 +84,19 @@ export default function TruckerHome({
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [compatibilityFilter, setCompatibilityFilter] = useState('todos');
+
+  // Query pagination limits for high-scale performance
+  const [supplierDisplayLimit, setSupplierDisplayLimit] = useState<number>(8);
+  const [catalogDisplayLimit, setCatalogDisplayLimit] = useState<number>(12);
+
+  // Reset pagination when search parameters change
+  useEffect(() => {
+    setSupplierDisplayLimit(8);
+  }, [selectedCategory, supplierSearchQuery, searchRadius, niche]);
+
+  useEffect(() => {
+    setCatalogDisplayLimit(12);
+  }, [searchQuery, compatibilityFilter, niche]);
 
   // Voice Speech Recognition States & Refs
   const [isListening, setIsListening] = useState(false);
@@ -187,24 +202,28 @@ export default function TruckerHome({
       setTruck(savedProf);
     }
 
-    // Real-time Chat Sync
+    // Real-time Chat Sync with performance monitoring
     const unsubChats = onSnapshot(collection(db, 'chats'), (snapshot) => {
-      const list: Chat[] = [];
-      snapshot.forEach(doc => {
-        list.push(doc.data() as Chat);
-      });
-      if (list.length > 0) {
-        setChats(list);
-      }
+      perfMonitor.measureSnapshotProcessing('TruckerHome:onSnapshot:chats', () => {
+        const list: Chat[] = [];
+        snapshot.forEach(doc => {
+          list.push(doc.data() as Chat);
+        });
+        if (list.length > 0) {
+          setChats(list);
+        }
+      }, snapshot.size);
     }, (err) => {
       console.warn('Chats snapshot error: ', err);
     });
 
-    // Real-time Truck Profile Sync
+    // Real-time Truck Profile Sync with performance monitoring
     const unsubTruck = onSnapshot(doc(db, 'truck_profiles', 'default_profile'), (docSnap) => {
-      if (docSnap.exists()) {
-        setTruck(docSnap.data() as TruckProfile);
-      }
+      perfMonitor.measureSnapshotProcessing('TruckerHome:onSnapshot:truck_profiles', () => {
+        if (docSnap.exists()) {
+          setTruck(docSnap.data() as TruckProfile);
+        }
+      }, 1);
     }, (err) => {
       console.warn('Truck snapshot error: ', err);
     });
@@ -299,64 +318,96 @@ export default function TruckerHome({
     setEditTruck(false);
   };
 
-  // Filter suppliers based on active category, search query and distance radius
-  const filteredSuppliers = suppliers.filter(s => {
-    // Check niche matching first (if configured)
-    if (niche && s.niche && s.niche !== niche) {
-      return false;
-    }
+  // Sub-millisecond Inverted Search Index for Suppliers
+  const supplierSearchIndex = useMemo(() => {
+    const index = new FastSearchIndex<Supplier>(s => [s.name, s.specialty, s.address, s.category]);
+    index.setItems(suppliers);
+    return index;
+  }, [suppliers]);
 
-    // 1. Check Category match
-    let matchesCategory = true;
-    if (selectedCategory !== 'todos') {
-      if (selectedCategory === 'eletrica') {
-        matchesCategory = s.category === 'socorro' || 
-               s.name.toLowerCase().includes('elétrica') || 
-               s.specialty.toLowerCase().includes('elétrica') || 
-               s.specialty.toLowerCase().includes('bateria');
-      } else if (selectedCategory === 'guincho') {
-        matchesCategory = s.category === 'socorro' || 
-               s.name.toLowerCase().includes('guincho') || 
-               s.specialty.toLowerCase().includes('guincho');
-      } else {
-        matchesCategory = s.category === selectedCategory;
+  // Sub-millisecond Inverted Search Index for Catalog Items
+  const catalogSearchIndex = useMemo(() => {
+    const index = new FastSearchIndex<CatalogItem>(c => [c.title, c.compatibleWith, c.code, c.category]);
+    index.setItems(catalogItems);
+    return index;
+  }, [catalogItems]);
+
+  // Filter suppliers based on active category, search query and distance radius (Memoized for high performance)
+  const filteredSuppliers = useMemo(() => {
+    const query = supplierSearchQuery.trim();
+    const candidateSuppliers = query ? supplierSearchIndex.search(query) : suppliers;
+
+    return candidateSuppliers.filter(s => {
+      // Check niche matching first (if configured)
+      if (niche && s.niche && s.niche !== niche) {
+        return false;
       }
-    }
 
-    // 2. Check Search query match
-    const query = supplierSearchQuery.trim().toLowerCase();
-    const matchesSearch = !query || 
-                          s.name.toLowerCase().includes(query) || 
-                          s.specialty.toLowerCase().includes(query) ||
-                          s.address.toLowerCase().includes(query);
+      // 1. Check Category match
+      if (selectedCategory !== 'todos') {
+        if (selectedCategory === 'eletrica') {
+          const isElec = s.category === 'socorro' || 
+                 s.name.toLowerCase().includes('elétrica') || 
+                 s.specialty.toLowerCase().includes('elétrica') || 
+                 s.specialty.toLowerCase().includes('bateria');
+          if (!isElec) return false;
+        } else if (selectedCategory === 'guincho') {
+          const isGuincho = s.category === 'socorro' || 
+                 s.name.toLowerCase().includes('guincho') || 
+                 s.specialty.toLowerCase().includes('guincho');
+          if (!isGuincho) return false;
+        } else if (s.category !== selectedCategory) {
+          return false;
+        }
+      }
 
-    // 3. Check Distance Radius match
-    const matchesDistance = s.distance <= searchRadius;
+      // 2. Check Distance Radius match
+      if (s.distance > searchRadius) {
+        return false;
+      }
 
-    return matchesCategory && matchesSearch && matchesDistance;
-  });
+      return true;
+    });
+  }, [suppliers, supplierSearchIndex, supplierSearchQuery, niche, selectedCategory, searchRadius]);
 
   // Sort suppliers so that those with isOnline: true always appear at the top of the list
-  const orderedSuppliers = [...filteredSuppliers].sort((a, b) => {
-    if (a.isOnline && !b.isOnline) return -1;
-    if (!a.isOnline && b.isOnline) return 1;
-    return 0; // maintain original distance sorting relative stability
-  });
+  const orderedSuppliers = useMemo(() => {
+    return [...filteredSuppliers].sort((a, b) => {
+      if (a.isOnline && !b.isOnline) return -1;
+      if (!a.isOnline && b.isOnline) return 1;
+      return a.distance - b.distance;
+    });
+  }, [filteredSuppliers]);
 
-  // Filter parts search
-  const filteredCatalogItems = catalogItems.filter(item => {
-    // Check niche matching first
-    if (niche && item.niche && item.niche !== niche) {
-      return false;
-    }
+  // Paginated window for Suppliers to maintain 60 FPS as dataset scales
+  const paginatedSuppliers = useMemo(() => {
+    return orderedSuppliers.slice(0, supplierDisplayLimit);
+  }, [orderedSuppliers, supplierDisplayLimit]);
 
-    const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          item.compatibleWith.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          item.code.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (compatibilityFilter === 'todos') return matchesSearch;
-    return matchesSearch && item.compatibleWith.toLowerCase().includes(compatibilityFilter.toLowerCase());
-  });
+  const hasMoreSuppliers = orderedSuppliers.length > supplierDisplayLimit;
+
+  // Filter parts search (Memoized with FastSearchIndex)
+  const filteredCatalogItems = useMemo(() => {
+    const query = searchQuery.trim();
+    const candidates = query ? catalogSearchIndex.search(query) : catalogItems;
+
+    return candidates.filter(item => {
+      // Check niche matching first
+      if (niche && item.niche && item.niche !== niche) {
+        return false;
+      }
+
+      if (compatibilityFilter === 'todos') return true;
+      return item.compatibleWith.toLowerCase().includes(compatibilityFilter.toLowerCase());
+    });
+  }, [catalogItems, catalogSearchIndex, searchQuery, niche, compatibilityFilter]);
+
+  // Paginated window for Catalog Items to protect frame rendering budget
+  const paginatedCatalogItems = useMemo(() => {
+    return filteredCatalogItems.slice(0, catalogDisplayLimit);
+  }, [filteredCatalogItems, catalogDisplayLimit]);
+
+  const hasMoreCatalog = filteredCatalogItems.length > catalogDisplayLimit;
 
   // Start chat with a supplier
   const startChatWithSupplier = (supplier: Supplier) => {
@@ -758,13 +809,14 @@ export default function TruckerHome({
                   </button>
                 </div>
               ) : (
-                orderedSuppliers.map((supplier) => (
-                  <motion.div
-                    key={supplier.id}
-                    layoutId={`card-${supplier.id}`}
-                    onClick={() => setSelectedSupplier(supplier)}
-                    className="p-4 bg-[#181818] border border-neutral-800 hover:border-[#FF8C00]/40 rounded-2xl transition-all cursor-pointer flex flex-col sm:flex-row justify-between gap-4 items-stretch group hover:shadow-xl hover:shadow-black/40"
-                  >
+                <>
+                  {paginatedSuppliers.map((supplier) => (
+                    <motion.div
+                      key={supplier.id}
+                      layoutId={`card-${supplier.id}`}
+                      onClick={() => setSelectedSupplier(supplier)}
+                      className="p-4 bg-[#181818] border border-neutral-800 hover:border-[#FF8C00]/40 rounded-2xl transition-all cursor-pointer flex flex-col sm:flex-row justify-between gap-4 items-stretch group hover:shadow-xl hover:shadow-black/40"
+                    >
                     {/* Left info column */}
                     <div className="flex items-start space-x-3.5 flex-1 min-w-0">
                       <div className="p-3 bg-[#121212] border border-neutral-800 rounded-xl text-[#FF8C00] group-hover:bg-[#FF8C00] group-hover:text-black group-hover:border-[#FF8C00] transition-all duration-200 shrink-0">
@@ -838,9 +890,26 @@ export default function TruckerHome({
                       </a>
                     </div>
                   </motion.div>
-                ))
-              )}
-            </div>
+                ))}
+
+                {hasMoreSuppliers && (
+                  <div className="pt-2 flex flex-col items-center gap-2">
+                    <button
+                      id="load-more-suppliers-btn"
+                      type="button"
+                      onClick={() => setSupplierDisplayLimit((prev) => prev + 8)}
+                      className="w-full sm:w-auto px-6 py-2.5 bg-[#1E1E1E] hover:bg-[#252525] border border-neutral-800 hover:border-[#FF8C00]/40 text-slate-200 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                    >
+                      <span>Carregar mais parceiros (+8)</span>
+                      <span className="text-[10px] text-slate-500 font-mono font-normal">
+                        ({paginatedSuppliers.length} de {orderedSuppliers.length})
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
 
             {/* Daily Offer Promo Card */}
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#FF8C00] to-[#D97706] text-black p-5 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -1237,9 +1306,10 @@ export default function TruckerHome({
                   <p className="text-slate-500 text-xs">Acesse o Chat do app para negociar orçamentos diretamente.</p>
                 </div>
               ) : (
-                filteredCatalogItems.map((item) => {
-                  const s = suppliers.find(su => su.id === item.supplierId);
-                  return (
+                <>
+                  {paginatedCatalogItems.map((item) => {
+                    const s = suppliers.find(su => su.id === item.supplierId);
+                    return (
                     <div key={item.id} className="p-4 bg-[#141414] border border-slate-800 rounded-xl flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
                       <div className="flex items-start space-x-3.5">
                         <span className="text-3xl p-3 bg-[#1C1C1C] rounded-xl shrink-0">{item.image}</span>
@@ -1306,9 +1376,26 @@ export default function TruckerHome({
                       </div>
                     </div>
                   );
-                })
-              )}
-            </div>
+                })}
+
+                {hasMoreCatalog && (
+                  <div className="pt-3 flex flex-col items-center gap-2">
+                    <button
+                      id="load-more-catalog-btn"
+                      type="button"
+                      onClick={() => setCatalogDisplayLimit((prev) => prev + 12)}
+                      className="w-full sm:w-auto px-6 py-2.5 bg-[#1E1E1E] hover:bg-[#252525] border border-neutral-800 hover:border-[#FF8C00]/40 text-slate-200 hover:text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md"
+                    >
+                      <span>Carregar mais peças em estoque (+12)</span>
+                      <span className="text-[10px] text-slate-500 font-mono font-normal">
+                        ({paginatedCatalogItems.length} de {filteredCatalogItems.length})
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
           </div>
         )}
 

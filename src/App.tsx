@@ -18,6 +18,7 @@ import LegalConsentModal from './components/LegalConsentModal';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import ShareAndMonetizeModal from './components/ShareAndMonetizeModal';
 import SponsoredAdBanner from './components/SponsoredAdBanner';
+import { perfMonitor, useRenderProfiler } from './services/perfMonitor';
 
 // Data layers
 import { Supplier, CatalogItem, Review } from './types';
@@ -26,6 +27,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 
 export default function App() {
+  useRenderProfiler('App');
   const [role, setRole] = useState<'onboarding' | 'trucker' | 'supplier' | 'seller' | 'plan'>('onboarding');
   const [niche, setNiche] = useState<'pesados' | 'passeio' | 'motos' | null>(null);
   const [username, setUsername] = useState('Roberto da Silva');
@@ -95,45 +97,55 @@ export default function App() {
     let isMounted = true;
 
     // 2. Initialize Firestore DB and Seed if empty
-    initializeDatabase().then(() => {
-      if (!isMounted) return;
-      // 3. Attach real-time collections synchronization
-      unsubSuppliers = onSnapshot(collection(db, 'suppliers'), (snapshot) => {
-        const list: Supplier[] = [];
-        snapshot.forEach((doc) => {
-          list.push(doc.data() as Supplier);
+    initializeDatabase()
+      .then(() => {
+        if (!isMounted) return;
+        // 3. Attach real-time collections synchronization with performance monitoring
+        unsubSuppliers = onSnapshot(collection(db, 'suppliers'), (snapshot) => {
+          perfMonitor.measureSnapshotProcessing('onSnapshot:suppliers', () => {
+            const list: Supplier[] = [];
+            snapshot.forEach((doc) => {
+              list.push(doc.data() as Supplier);
+            });
+            if (list.length > 0) {
+              setSuppliers(list);
+            }
+          }, snapshot.size);
+        }, (err) => {
+          console.warn('Suppliers snapshot error: ', err);
         });
-        if (list.length > 0) {
-          setSuppliers(list);
-        }
-      }, (err) => {
-        console.warn('Suppliers snapshot error: ', err);
-      });
 
-      unsubCatalog = onSnapshot(collection(db, 'catalog'), (snapshot) => {
-        const list: CatalogItem[] = [];
-        snapshot.forEach((doc) => {
-          list.push(doc.data() as CatalogItem);
+        unsubCatalog = onSnapshot(collection(db, 'catalog'), (snapshot) => {
+          perfMonitor.measureSnapshotProcessing('onSnapshot:catalog', () => {
+            const list: CatalogItem[] = [];
+            snapshot.forEach((doc) => {
+              list.push(doc.data() as CatalogItem);
+            });
+            if (list.length > 0) {
+              setCatalogItems(list);
+            }
+          }, snapshot.size);
+        }, (err) => {
+          console.warn('Catalog snapshot error: ', err);
         });
-        if (list.length > 0) {
-          setCatalogItems(list);
-        }
-      }, (err) => {
-        console.warn('Catalog snapshot error: ', err);
-      });
 
-      unsubReviews = onSnapshot(collection(db, 'reviews'), (snapshot) => {
-        const list: Review[] = [];
-        snapshot.forEach((doc) => {
-          list.push(doc.data() as Review);
+        unsubReviews = onSnapshot(collection(db, 'reviews'), (snapshot) => {
+          perfMonitor.measureSnapshotProcessing('onSnapshot:reviews', () => {
+            const list: Review[] = [];
+            snapshot.forEach((doc) => {
+              list.push(doc.data() as Review);
+            });
+            if (list.length > 0) {
+              setReviews(list);
+            }
+          }, snapshot.size);
+        }, (err) => {
+          console.warn('Reviews snapshot error: ', err);
         });
-        if (list.length > 0) {
-          setReviews(list);
-        }
-      }, (err) => {
-        console.warn('Reviews snapshot error: ', err);
+      })
+      .catch((err) => {
+        console.warn('Database initialization caught gracefully:', err);
       });
-    });
 
     return () => {
       isMounted = false;

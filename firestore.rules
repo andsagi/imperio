@@ -40,6 +40,11 @@ service cloud.firestore {
       return data.id is string && data.targetId is string && data.targetName is string && data.targetType is string && data.reviewerName is string && data.reviewerRole is string && data.rating is number && data.comment is string && data.timestamp is string;
     }
 
+    // 0. Connection test
+    match /test/{testId} {
+      allow read, write: if true;
+    }
+
     // 1. Suppliers
     match /suppliers/{supplierId} {
       allow read: if true;

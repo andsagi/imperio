@@ -6,6 +6,7 @@
 import { Supplier, CatalogItem, Chat, TruckProfile, SOSRequest, OrderStats, Seller, Review } from './types';
 import { collection, doc, getDocs, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebase';
+import { perfMonitor } from './services/perfMonitor';
 
 export const INITIAL_REVIEWS: Review[] = [
   {
@@ -457,6 +458,691 @@ export const INITIAL_STATS: OrderStats = {
   salesClosed: 19,
 };
 
+export const INITIAL_SOS_REQUESTS: SOSRequest[] = [
+  // Today's distress calls (2026-09-24)
+  {
+    id: 'sos_101',
+    type: 'Pneu Furado / Estourado',
+    description: 'Estouro de pneu duplo traseiro no trecho de subida com carga pesada.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 22,
+    timestamp: '2026-09-24T02:15:00Z',
+    highway: 'Rod. Washington Luís, KM 298',
+    km: 298,
+    driverName: 'Marcos Aurelio',
+    truckModel: 'Scania R450',
+    responseTimeMinutes: 19
+  },
+  {
+    id: 'sos_102',
+    type: 'Necessito de Guincho Pesado',
+    description: 'Quebra de eixo cardan travou o cavalo mecânico na faixa 2 da rodovia.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 35,
+    timestamp: '2026-09-24T02:45:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 48',
+    km: 48,
+    driverName: 'Claudio Peixoto',
+    truckModel: 'Volvo FH 540',
+    responseTimeMinutes: 28
+  },
+  {
+    id: 'sos_103',
+    type: 'Problema Elétrico / Bateria',
+    description: 'Alternador parou de carregar, painel apagou completamente no escuro.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 25,
+    timestamp: '2026-09-24T03:20:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 52',
+    km: 52,
+    driverName: 'José Fernandes',
+    truckModel: 'Mercedes-Benz Actros 2651',
+    responseTimeMinutes: 21
+  },
+  {
+    id: 'sos_104',
+    type: 'Pneu Furado / Estourado',
+    description: 'Pneu do cavalo estourou no acostamento após passar sobre cinta metálica solta.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 18,
+    timestamp: '2026-09-24T03:55:00Z',
+    highway: 'Rod. Anhanguera, KM 102',
+    km: 102,
+    driverName: 'Roberto da Silva',
+    truckModel: 'Volvo FH 540',
+    responseTimeMinutes: 16
+  },
+  {
+    id: 'sos_105',
+    type: 'Falta de Freio / Compressor',
+    description: 'Vazamento de ar na cuíca de freio travou as rodas traseiras da carreta.',
+    status: 'completed',
+    matchedSupplierId: 's2',
+    matchedSupplierName: 'Mecânica Diesel Express 24h',
+    etaMinutes: 28,
+    timestamp: '2026-09-24T04:30:00Z',
+    highway: 'Rod. Anhanguera, KM 94',
+    km: 94,
+    driverName: 'Adilson Prado',
+    truckModel: 'DAF XF 530',
+    responseTimeMinutes: 24
+  },
+  {
+    id: 'sos_106',
+    type: 'Pane Mecânica / Motor',
+    description: 'Mangueira do intercooler rompeu na subida da serra, fumaça preta e perda de pressão.',
+    status: 'completed',
+    matchedSupplierId: 's2',
+    matchedSupplierName: 'Mecânica Diesel Express 24h',
+    etaMinutes: 20,
+    timestamp: '2026-09-24T07:15:00Z',
+    highway: 'Rod. Presidente Dutra, KM 218',
+    km: 218,
+    driverName: 'Wellington Gomes',
+    truckModel: 'Scania R440',
+    responseTimeMinutes: 18
+  },
+  {
+    id: 'sos_107',
+    type: 'Motor Fervendo / Arrefecimento',
+    description: 'Vazamento na carcaça da válvula termostática provocou superaquecimento.',
+    status: 'completed',
+    matchedSupplierId: 's1',
+    matchedSupplierName: 'Tietê Diesel Autopeças',
+    etaMinutes: 25,
+    timestamp: '2026-09-24T07:50:00Z',
+    highway: 'Rod. Presidente Dutra, KM 225',
+    km: 225,
+    driverName: 'Carlos Henrique',
+    truckModel: 'Volvo FH 460',
+    responseTimeMinutes: 22
+  },
+  {
+    id: 'sos_108',
+    type: 'Pneu Furado / Estourado',
+    description: 'Pneu direcional esquerdo perdeu pressão bruscamente no início da viagem.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 15,
+    timestamp: '2026-09-24T08:35:00Z',
+    highway: 'Rod. Washington Luís, KM 305',
+    km: 305,
+    driverName: 'Lucas Matos',
+    truckModel: 'Volkswagen Meteor 29.520',
+    responseTimeMinutes: 14
+  },
+  {
+    id: 'sos_109',
+    type: 'Pane Mecânica / Motor',
+    description: 'Embreagem patinando na arrancada da praça de pedágio.',
+    status: 'completed',
+    matchedSupplierId: 's1',
+    matchedSupplierName: 'Tietê Diesel Autopeças',
+    etaMinutes: 30,
+    timestamp: '2026-09-24T11:20:00Z',
+    highway: 'Rod. Presidente Dutra, KM 210',
+    km: 210,
+    driverName: 'Valdir Silveira',
+    truckModel: 'Scania Streamline',
+    responseTimeMinutes: 26
+  },
+  {
+    id: 'sos_110',
+    type: 'Falta de Freio / Compressor',
+    description: 'Luz de falha do freio motor e compressor não atinge 10 bar.',
+    status: 'completed',
+    matchedSupplierId: 's2',
+    matchedSupplierName: 'Mecânica Diesel Express 24h',
+    etaMinutes: 24,
+    timestamp: '2026-09-24T14:40:00Z',
+    highway: 'Rod. Anhanguera, KM 110',
+    km: 110,
+    driverName: 'Gilberto Lima',
+    truckModel: 'Mercedes-Benz Axor',
+    responseTimeMinutes: 20
+  },
+  {
+    id: 'sos_111',
+    type: 'Problema Elétrico / Bateria',
+    description: 'Faróis e iluminação da carreta apagaram no trecho de neblina.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 20,
+    timestamp: '2026-09-24T19:30:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 42',
+    km: 42,
+    driverName: 'Fabio Costa',
+    truckModel: 'Volvo FH 540',
+    responseTimeMinutes: 17
+  },
+  {
+    id: 'sos_112',
+    type: 'Pneu Furado / Estourado',
+    description: 'Furo duplo no 4º eixo da carreta bitrem carregada.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 25,
+    timestamp: '2026-09-24T21:10:00Z',
+    highway: 'Rod. Washington Luís, KM 290',
+    km: 290,
+    driverName: 'Moacir Santos',
+    truckModel: 'Scania R500',
+    responseTimeMinutes: 22
+  },
+  {
+    id: 'sos_113',
+    type: 'Necessito de Guincho Pesado',
+    description: 'Correia de acessórios arrebentou e travou bomba d’água.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 32,
+    timestamp: '2026-09-24T21:45:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 58',
+    km: 58,
+    driverName: 'Sebastião Ramos',
+    truckModel: 'Mercedes-Benz Actros',
+    responseTimeMinutes: 27
+  },
+  {
+    id: 'sos_114',
+    type: 'Pane Mecânica / Motor',
+    description: 'Ruído metálico no cabeçote e perda de rendimento.',
+    status: 'completed',
+    matchedSupplierId: 's1',
+    matchedSupplierName: 'Tietê Diesel Autopeças',
+    etaMinutes: 28,
+    timestamp: '2026-09-24T22:30:00Z',
+    highway: 'Rod. Presidente Dutra, KM 220',
+    km: 220,
+    driverName: 'Edilson Miranda',
+    truckModel: 'Scania R440',
+    responseTimeMinutes: 24
+  },
+  {
+    id: 'sos_115',
+    type: 'Problema Elétrico / Bateria',
+    description: 'Bateria descarregada após parada para reabastecimento.',
+    status: 'accepted',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 19,
+    timestamp: '2026-09-24T23:15:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 39',
+    km: 39,
+    driverName: 'Renato Nogueira',
+    truckModel: 'Volvo FM 370',
+    responseTimeMinutes: 15
+  },
+
+  // 2026-09-23 Distress calls
+  {
+    id: 'sos_116',
+    type: 'Necessito de Guincho Pesado',
+    description: 'Pane no diferencial em trecho sem acostamento na serra.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 35,
+    timestamp: '2026-09-23T01:30:00Z',
+    highway: 'Rod. Presidente Dutra, KM 195',
+    km: 195,
+    driverName: 'Jair Messias',
+    truckModel: 'Scania R450',
+    responseTimeMinutes: 30
+  },
+  {
+    id: 'sos_117',
+    type: 'Pneu Furado / Estourado',
+    description: 'Dois pneus estourados em buraco na pista da direita.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 20,
+    timestamp: '2026-09-23T02:20:00Z',
+    highway: 'Rod. Washington Luís, KM 312',
+    km: 312,
+    driverName: 'Leandro Viana',
+    truckModel: 'Iveco Stralis',
+    responseTimeMinutes: 18
+  },
+  {
+    id: 'sos_118',
+    type: 'Problema Elétrico / Bateria',
+    description: 'Chave geral desarmando e cheiro de queimado no chicote.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 24,
+    timestamp: '2026-09-23T03:10:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 65',
+    km: 65,
+    driverName: 'Anderson Silva',
+    truckModel: 'Volvo FH 500',
+    responseTimeMinutes: 21
+  },
+  {
+    id: 'sos_119',
+    type: 'Falta de Freio / Compressor',
+    description: 'Válvula moduladora do freio EBS com falha de comunicação.',
+    status: 'completed',
+    matchedSupplierId: 's2',
+    matchedSupplierName: 'Mecânica Diesel Express 24h',
+    etaMinutes: 26,
+    timestamp: '2026-09-23T03:45:00Z',
+    highway: 'Rod. Anhanguera, KM 89',
+    km: 89,
+    driverName: 'Tiago Rocha',
+    truckModel: 'Scania R440',
+    responseTimeMinutes: 23
+  },
+  {
+    id: 'sos_120',
+    type: 'Pane Mecânica / Motor',
+    description: 'Filtro racor entupiu com borra de diesel, motor apagando.',
+    status: 'completed',
+    matchedSupplierId: 's2',
+    matchedSupplierName: 'Mecânica Diesel Express 24h',
+    etaMinutes: 18,
+    timestamp: '2026-09-23T07:30:00Z',
+    highway: 'Rod. Anhanguera, KM 97',
+    km: 97,
+    driverName: 'Henrique Alves',
+    truckModel: 'Volvo FH 540',
+    responseTimeMinutes: 15
+  },
+  {
+    id: 'sos_121',
+    type: 'Pneu Furado / Estourado',
+    description: 'Pneu esvaziando lentamente na roda traseira externa.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 15,
+    timestamp: '2026-09-23T08:15:00Z',
+    highway: 'Rod. Washington Luís, KM 285',
+    km: 285,
+    driverName: 'Marcio Souza',
+    truckModel: 'Mercedes Actros',
+    responseTimeMinutes: 13
+  },
+  {
+    id: 'sos_122',
+    type: 'Problema Elétrico / Bateria',
+    description: 'Falha no motor de partida após pernoite.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 22,
+    timestamp: '2026-09-23T08:50:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 30',
+    km: 30,
+    driverName: 'Paulo Cesar',
+    truckModel: 'DAF XF 480',
+    responseTimeMinutes: 19
+  },
+  {
+    id: 'sos_123',
+    type: 'Pane Mecânica / Motor',
+    description: 'Correia do alternador esgarçada emitindo chiado intenso.',
+    status: 'completed',
+    matchedSupplierId: 's1',
+    matchedSupplierName: 'Tietê Diesel Autopeças',
+    etaMinutes: 27,
+    timestamp: '2026-09-23T15:20:00Z',
+    highway: 'Rod. Presidente Dutra, KM 215',
+    km: 215,
+    driverName: 'Rodrigo Brandão',
+    truckModel: 'Scania R450',
+    responseTimeMinutes: 22
+  },
+  {
+    id: 'sos_124',
+    type: 'Pneu Furado / Estourado',
+    description: 'Pneu estourou na descida de serra com risco de tombo de carga.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 21,
+    timestamp: '2026-09-23T20:45:00Z',
+    highway: 'Rod. Washington Luís, KM 318',
+    km: 318,
+    driverName: 'Bruno Carvalho',
+    truckModel: 'Volvo FH 540',
+    responseTimeMinutes: 18
+  },
+  {
+    id: 'sos_125',
+    type: 'Necessito de Guincho Pesado',
+    description: 'Caminhão tombou no canteiro central em pista molhada.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 40,
+    timestamp: '2026-09-23T22:10:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 72',
+    km: 72,
+    driverName: 'Sergio Andrade',
+    truckModel: 'Iveco Hi-Way',
+    responseTimeMinutes: 34
+  },
+  {
+    id: 'sos_126',
+    type: 'Problema Elétrico / Bateria',
+    description: 'Pane total no sistema de iluminação de comboio noturno.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 22,
+    timestamp: '2026-09-23T23:40:00Z',
+    highway: 'Rod. Presidente Dutra, KM 230',
+    km: 230,
+    driverName: 'Celson Dias',
+    truckModel: 'Scania R440',
+    responseTimeMinutes: 19
+  },
+
+  // 2026-09-22 Distress calls
+  {
+    id: 'sos_127',
+    type: 'Pneu Furado / Estourado',
+    description: 'Estouro de pneu em rodagem noturna pesada.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 19,
+    timestamp: '2026-09-22T02:05:00Z',
+    highway: 'Rod. Anhanguera, KM 105',
+    km: 105,
+    driverName: 'Geraldo Nunes',
+    truckModel: 'Volvo FH 540',
+    responseTimeMinutes: 16
+  },
+  {
+    id: 'sos_128',
+    type: 'Necessito de Guincho Pesado',
+    description: 'Transmissão automática travou em Neutro no meio da rodovia.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 38,
+    timestamp: '2026-09-22T02:50:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 50',
+    km: 50,
+    driverName: 'Nelson Pires',
+    truckModel: 'Scania R500',
+    responseTimeMinutes: 31
+  },
+  {
+    id: 'sos_129',
+    type: 'Motor Fervendo / Arrefecimento',
+    description: 'Radiador furou por impacto de pedra solta na pista.',
+    status: 'completed',
+    matchedSupplierId: 's1',
+    matchedSupplierName: 'Tietê Diesel Autopeças',
+    etaMinutes: 26,
+    timestamp: '2026-09-22T07:20:00Z',
+    highway: 'Rod. Presidente Dutra, KM 222',
+    km: 222,
+    driverName: 'Mauricio Ramos',
+    truckModel: 'Mercedes Actros',
+    responseTimeMinutes: 22
+  },
+  {
+    id: 'sos_130',
+    type: 'Pneu Furado / Estourado',
+    description: 'Pneu traseiro da carreta esvaziou totalmente.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 16,
+    timestamp: '2026-09-22T08:10:00Z',
+    highway: 'Rod. Washington Luís, KM 295',
+    km: 295,
+    driverName: 'Felipe Ribeiro',
+    truckModel: 'Volkswagen Meteor',
+    responseTimeMinutes: 14
+  },
+  {
+    id: 'sos_131',
+    type: 'Pane Mecânica / Motor',
+    description: 'Bomba de combustível falhando em alta rotação.',
+    status: 'completed',
+    matchedSupplierId: 's2',
+    matchedSupplierName: 'Mecânica Diesel Express 24h',
+    etaMinutes: 24,
+    timestamp: '2026-09-22T13:45:00Z',
+    highway: 'Rod. Anhanguera, KM 91',
+    km: 91,
+    driverName: 'Luciano Costa',
+    truckModel: 'DAF XF',
+    responseTimeMinutes: 20
+  },
+  {
+    id: 'sos_132',
+    type: 'Problema Elétrico / Bateria',
+    description: 'Faróis piscando e pane no módulo eletrônico do cavalo.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 20,
+    timestamp: '2026-09-22T21:30:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 44',
+    km: 44,
+    driverName: 'Renato Lima',
+    truckModel: 'Volvo FH 460',
+    responseTimeMinutes: 17
+  },
+  {
+    id: 'sos_133',
+    type: 'Necessito de Guincho Pesado',
+    description: 'Pane seca e sistema injetor com ar na linha.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 30,
+    timestamp: '2026-09-22T22:50:00Z',
+    highway: 'Rod. Presidente Dutra, KM 205',
+    km: 205,
+    driverName: 'Wagner Melo',
+    truckModel: 'Scania R440',
+    responseTimeMinutes: 25
+  },
+
+  // 2026-09-20 / 2026-09-18 Historical calls (demonstrating persistent 24h peak trends)
+  {
+    id: 'sos_134',
+    type: 'Pneu Furado / Estourado',
+    description: 'Pneu furado na madrugada em trecho isolado sem sinal celular.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 23,
+    timestamp: '2026-09-20T01:45:00Z',
+    highway: 'Rod. Washington Luís, KM 308',
+    km: 308,
+    driverName: 'Diego Castro',
+    truckModel: 'Volvo FH 540',
+    responseTimeMinutes: 20
+  },
+  {
+    id: 'sos_135',
+    type: 'Necessito de Guincho Pesado',
+    description: 'Diferencial quebrou na subida de serra com bloqueio parcial.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 36,
+    timestamp: '2026-09-20T02:35:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 55',
+    km: 55,
+    driverName: 'Antonio Carlos',
+    truckModel: 'Mercedes Actros',
+    responseTimeMinutes: 29
+  },
+  {
+    id: 'sos_136',
+    type: 'Falta de Freio / Compressor',
+    description: 'Válvula de descarga rápida travou aberta, ar esgotando.',
+    status: 'completed',
+    matchedSupplierId: 's2',
+    matchedSupplierName: 'Mecânica Diesel Express 24h',
+    etaMinutes: 25,
+    timestamp: '2026-09-20T03:30:00Z',
+    highway: 'Rod. Anhanguera, KM 100',
+    km: 100,
+    driverName: 'Reginaldo Silva',
+    truckModel: 'Scania R450',
+    responseTimeMinutes: 21
+  },
+  {
+    id: 'sos_137',
+    type: 'Pane Mecânica / Motor',
+    description: 'Correia dentada auxiliar partiu na partida da manhã.',
+    status: 'completed',
+    matchedSupplierId: 's1',
+    matchedSupplierName: 'Tietê Diesel Autopeças',
+    etaMinutes: 22,
+    timestamp: '2026-09-20T07:40:00Z',
+    highway: 'Rod. Presidente Dutra, KM 219',
+    km: 219,
+    driverName: 'Gustavo Paiva',
+    truckModel: 'Scania R440',
+    responseTimeMinutes: 18
+  },
+  {
+    id: 'sos_138',
+    type: 'Problema Elétrico / Bateria',
+    description: 'Alternador em curto provocou descarga total da bateria.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 21,
+    timestamp: '2026-09-20T21:15:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 46',
+    km: 46,
+    driverName: 'Everton Santos',
+    truckModel: 'Volvo FM 370',
+    responseTimeMinutes: 18
+  },
+  {
+    id: 'sos_139',
+    type: 'Pneu Furado / Estourado',
+    description: 'Pneu estourou na descida de viaduto de entroncamento.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 24,
+    timestamp: '2026-09-20T22:40:00Z',
+    highway: 'Rod. Washington Luís, KM 292',
+    km: 292,
+    driverName: 'Silvio Batista',
+    truckModel: 'Iveco Stralis',
+    responseTimeMinutes: 20
+  },
+  {
+    id: 'sos_140',
+    type: 'Necessito de Guincho Pesado',
+    description: 'Falha no engate da quinta roda e sem sustentação de pino rei.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 34,
+    timestamp: '2026-09-18T02:15:00Z',
+    highway: 'Rod. Presidente Dutra, KM 198',
+    km: 198,
+    driverName: 'Alexandre Lopes',
+    truckModel: 'Scania R500',
+    responseTimeMinutes: 28
+  },
+  {
+    id: 'sos_141',
+    type: 'Pneu Furado / Estourado',
+    description: 'Recapagem se soltou em alta velocidade causando vibração no volante.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 18,
+    timestamp: '2026-09-18T03:00:00Z',
+    highway: 'Rod. Anhanguera, KM 96',
+    km: 96,
+    driverName: 'Gilmar Oliveira',
+    truckModel: 'Mercedes Actros',
+    responseTimeMinutes: 15
+  },
+  {
+    id: 'sos_142',
+    type: 'Falta de Freio / Compressor',
+    description: 'Tambor de freio superaqueceu com fumaça nas lonas na descida.',
+    status: 'completed',
+    matchedSupplierId: 's2',
+    matchedSupplierName: 'Mecânica Diesel Express 24h',
+    etaMinutes: 26,
+    timestamp: '2026-09-18T08:00:00Z',
+    highway: 'Rod. dos Bandeirantes, KM 51',
+    km: 51,
+    driverName: 'Roberto da Silva',
+    truckModel: 'Volvo FH 540',
+    responseTimeMinutes: 22
+  },
+  {
+    id: 'sos_143',
+    type: 'Problema Elétrico / Bateria',
+    description: 'Faróis auxiliares apagaram no acostamento escuro.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 20,
+    timestamp: '2026-09-18T21:50:00Z',
+    highway: 'Rod. Washington Luís, KM 302',
+    km: 302,
+    driverName: 'Vitor Hugo',
+    truckModel: 'DAF XF',
+    responseTimeMinutes: 17
+  },
+  {
+    id: 'sos_144',
+    type: 'Necessito de Guincho Pesado',
+    description: 'Quebra de cruzeta do cardan travou as rodas traseiras.',
+    status: 'completed',
+    matchedSupplierId: 's5',
+    matchedSupplierName: 'Auto Elétrica e Guincho Rodovias',
+    etaMinutes: 35,
+    timestamp: '2026-09-15T02:40:00Z',
+    highway: 'Rod. Anhanguera, KM 108',
+    km: 108,
+    driverName: 'Marcos Vinicius',
+    truckModel: 'Volvo FH 540',
+    responseTimeMinutes: 29
+  },
+  {
+    id: 'sos_145',
+    type: 'Pneu Furado / Estourado',
+    description: 'Pneu do cavalo estourou ao passar sobre objeto pontiagudo.',
+    status: 'completed',
+    matchedSupplierId: 's4',
+    matchedSupplierName: 'Borracharia e Truck Center KM 300',
+    etaMinutes: 17,
+    timestamp: '2026-09-15T22:15:00Z',
+    highway: 'Rod. Presidente Dutra, KM 212',
+    km: 212,
+    driverName: 'Fabiano Toledo',
+    truckModel: 'Scania R440',
+    responseTimeMinutes: 14
+  }
+];
+
 // LocalStorage Helper functions
 const getStorageItem = <T>(key: string, defaultValue: T): T => {
   if (typeof window === 'undefined') return defaultValue;
@@ -473,10 +1159,14 @@ const setStorageItem = <T>(key: string, value: T): void => {
 export const loadSuppliers = (): Supplier[] => getStorageItem('suppliers', INITIAL_SUPPLIERS);
 export const saveSuppliers = (suppliers: Supplier[]): void => {
   setStorageItem('suppliers', suppliers);
-  // Async Sync to Firestore
+  // Async Sync to Firestore measured by perfMonitor
   suppliers.forEach(async (supplier) => {
     try {
-      await setDoc(doc(db, 'suppliers', supplier.id), supplier);
+      await perfMonitor.measureQuery(
+        `setDoc:suppliers/${supplier.id}`,
+        () => setDoc(doc(db, 'suppliers', supplier.id), supplier),
+        { type: 'mutation' }
+      );
     } catch (e) {
       console.warn('Failed to sync supplier to Firestore: ', e);
     }
@@ -486,10 +1176,14 @@ export const saveSuppliers = (suppliers: Supplier[]): void => {
 export const loadCatalogItems = (): CatalogItem[] => getStorageItem('catalog', INITIAL_CATALOG_ITEMS);
 export const saveCatalogItems = (items: CatalogItem[]): void => {
   setStorageItem('catalog', items);
-  // Async Sync to Firestore
+  // Async Sync to Firestore measured by perfMonitor
   items.forEach(async (item) => {
     try {
-      await setDoc(doc(db, 'catalog', item.id), item);
+      await perfMonitor.measureQuery(
+        `setDoc:catalog/${item.id}`,
+        () => setDoc(doc(db, 'catalog', item.id), item),
+        { type: 'mutation' }
+      );
     } catch (e) {
       console.warn('Failed to sync catalog item to Firestore: ', e);
     }
@@ -499,10 +1193,14 @@ export const saveCatalogItems = (items: CatalogItem[]): void => {
 export const loadChats = (): Chat[] => getStorageItem('chats', INITIAL_CHATS);
 export const saveChats = (chats: Chat[]): void => {
   setStorageItem('chats', chats);
-  // Async Sync to Firestore
+  // Async Sync to Firestore measured by perfMonitor
   chats.forEach(async (chat) => {
     try {
-      await setDoc(doc(db, 'chats', chat.id), chat);
+      await perfMonitor.measureQuery(
+        `setDoc:chats/${chat.id}`,
+        () => setDoc(doc(db, 'chats', chat.id), chat),
+        { type: 'mutation' }
+      );
     } catch (e) {
       console.warn('Failed to sync chat to Firestore: ', e);
     }
@@ -512,19 +1210,27 @@ export const saveChats = (chats: Chat[]): void => {
 export const loadTruckProfile = (): TruckProfile => getStorageItem('truck_profile', INITIAL_TRUCK_PROFILE);
 export const saveTruckProfile = (profile: TruckProfile): void => {
   setStorageItem('truck_profile', profile);
-  // Async Sync to Firestore
-  setDoc(doc(db, 'truck_profiles', 'default_profile'), profile).catch(e => {
+  // Async Sync to Firestore measured by perfMonitor
+  perfMonitor.measureQuery(
+    'setDoc:truck_profiles/default_profile',
+    () => setDoc(doc(db, 'truck_profiles', 'default_profile'), profile),
+    { type: 'mutation' }
+  ).catch(e => {
     console.warn('Failed to sync truck profile to Firestore: ', e);
   });
 };
 
-export const loadSOSRequests = (): SOSRequest[] => getStorageItem('sos_requests', []);
+export const loadSOSRequests = (): SOSRequest[] => getStorageItem('sos_requests', INITIAL_SOS_REQUESTS);
 export const saveSOSRequests = (requests: SOSRequest[]): void => {
   setStorageItem('sos_requests', requests);
-  // Async Sync to Firestore
+  // Async Sync to Firestore measured by perfMonitor
   requests.forEach(async (req) => {
     try {
-      await setDoc(doc(db, 'sos_requests', req.id), req);
+      await perfMonitor.measureQuery(
+        `setDoc:sos_requests/${req.id}`,
+        () => setDoc(doc(db, 'sos_requests', req.id), req),
+        { type: 'mutation' }
+      );
     } catch (e) {
       console.warn('Failed to sync SOS request to Firestore: ', e);
     }
@@ -534,8 +1240,12 @@ export const saveSOSRequests = (requests: SOSRequest[]): void => {
 export const loadStats = (): OrderStats => getStorageItem('stats', INITIAL_STATS);
 export const saveStats = (stats: OrderStats): void => {
   setStorageItem('stats', stats);
-  // Async Sync to Firestore
-  setDoc(doc(db, 'stats', 'global_stats'), stats).catch(e => {
+  // Async Sync to Firestore measured by perfMonitor
+  perfMonitor.measureQuery(
+    'setDoc:stats/global_stats',
+    () => setDoc(doc(db, 'stats', 'global_stats'), stats),
+    { type: 'mutation' }
+  ).catch(e => {
     console.warn('Failed to sync stats to Firestore: ', e);
   });
 };
@@ -543,10 +1253,14 @@ export const saveStats = (stats: OrderStats): void => {
 export const loadReviews = (): Review[] => getStorageItem('reviews', INITIAL_REVIEWS);
 export const saveReviews = (reviews: Review[]): void => {
   setStorageItem('reviews', reviews);
-  // Async Sync to Firestore
+  // Async Sync to Firestore measured by perfMonitor
   reviews.forEach(async (review) => {
     try {
-      await setDoc(doc(db, 'reviews', review.id), review);
+      await perfMonitor.measureQuery(
+        `setDoc:reviews/${review.id}`,
+        () => setDoc(doc(db, 'reviews', review.id), review),
+        { type: 'mutation' }
+      );
     } catch (e) {
       console.warn('Failed to sync review to Firestore: ', e);
     }
@@ -556,12 +1270,15 @@ export const saveReviews = (reviews: Review[]): void => {
 // Database Initial Seeding and Validation Connection function
 export const initializeDatabase = async (): Promise<boolean> => {
   try {
-    console.log('Validating connection and checking database state...');
+    console.log('Validating connection and checking database state with performance monitoring...');
     
     // 1. Check to seed Suppliers
     let suppliersSnap;
     try {
-      suppliersSnap = await getDocs(collection(db, 'suppliers'));
+      suppliersSnap = await perfMonitor.measureQuery(
+        'getDocs:suppliers',
+        () => getDocs(collection(db, 'suppliers'))
+      );
     } catch (err) {
       console.error('Error reading suppliers collection:', err);
       handleFirestoreError(err, OperationType.GET, 'suppliers');
@@ -571,7 +1288,11 @@ export const initializeDatabase = async (): Promise<boolean> => {
       console.log('Database empty! Seeding INITIAL_SUPPLIERS...');
       for (const supplier of INITIAL_SUPPLIERS) {
         try {
-          await setDoc(doc(db, 'suppliers', supplier.id), supplier);
+          await perfMonitor.measureQuery(
+            `seed:suppliers/${supplier.id}`,
+            () => setDoc(doc(db, 'suppliers', supplier.id), supplier),
+            { type: 'mutation' }
+          );
         } catch (err) {
           console.error(`Error writing supplier ${supplier.id}:`, err);
           handleFirestoreError(err, OperationType.WRITE, `suppliers/${supplier.id}`);
@@ -582,7 +1303,10 @@ export const initializeDatabase = async (): Promise<boolean> => {
     // 2. Check to seed Catalog
     let catalogSnap;
     try {
-      catalogSnap = await getDocs(collection(db, 'catalog'));
+      catalogSnap = await perfMonitor.measureQuery(
+        'getDocs:catalog',
+        () => getDocs(collection(db, 'catalog'))
+      );
     } catch (err) {
       console.error('Error reading catalog collection:', err);
       handleFirestoreError(err, OperationType.GET, 'catalog');
@@ -592,7 +1316,11 @@ export const initializeDatabase = async (): Promise<boolean> => {
       console.log('Database empty! Seeding INITIAL_CATALOG_ITEMS...');
       for (const item of INITIAL_CATALOG_ITEMS) {
         try {
-          await setDoc(doc(db, 'catalog', item.id), item);
+          await perfMonitor.measureQuery(
+            `seed:catalog/${item.id}`,
+            () => setDoc(doc(db, 'catalog', item.id), item),
+            { type: 'mutation' }
+          );
         } catch (err) {
           console.error(`Error writing catalog item ${item.id}:`, err);
           handleFirestoreError(err, OperationType.WRITE, `catalog/${item.id}`);
@@ -603,7 +1331,10 @@ export const initializeDatabase = async (): Promise<boolean> => {
     // 3. Check to seed Chats
     let chatsSnap;
     try {
-      chatsSnap = await getDocs(collection(db, 'chats'));
+      chatsSnap = await perfMonitor.measureQuery(
+        'getDocs:chats',
+        () => getDocs(collection(db, 'chats'))
+      );
     } catch (err) {
       console.error('Error reading chats collection:', err);
       handleFirestoreError(err, OperationType.GET, 'chats');
@@ -613,7 +1344,11 @@ export const initializeDatabase = async (): Promise<boolean> => {
       console.log('Database empty! Seeding INITIAL_CHATS...');
       for (const chat of INITIAL_CHATS) {
         try {
-          await setDoc(doc(db, 'chats', chat.id), chat);
+          await perfMonitor.measureQuery(
+            `seed:chats/${chat.id}`,
+            () => setDoc(doc(db, 'chats', chat.id), chat),
+            { type: 'mutation' }
+          );
         } catch (err) {
           console.error(`Error writing chat ${chat.id}:`, err);
           handleFirestoreError(err, OperationType.WRITE, `chats/${chat.id}`);
@@ -624,7 +1359,10 @@ export const initializeDatabase = async (): Promise<boolean> => {
     // 4. Check to seed Stats
     let statsDoc;
     try {
-      statsDoc = await getDoc(doc(db, 'stats', 'global_stats'));
+      statsDoc = await perfMonitor.measureQuery(
+        'getDoc:stats/global_stats',
+        () => getDoc(doc(db, 'stats', 'global_stats'))
+      );
     } catch (err) {
       console.error('Error reading stats/global_stats:', err);
       handleFirestoreError(err, OperationType.GET, 'stats/global_stats');
@@ -633,7 +1371,11 @@ export const initializeDatabase = async (): Promise<boolean> => {
     if (statsDoc && !statsDoc.exists()) {
       console.log('Seeding default stats...');
       try {
-        await setDoc(doc(db, 'stats', 'global_stats'), INITIAL_STATS);
+        await perfMonitor.measureQuery(
+          'seed:stats/global_stats',
+          () => setDoc(doc(db, 'stats', 'global_stats'), INITIAL_STATS),
+          { type: 'mutation' }
+        );
       } catch (err) {
         console.error('Error writing stats/global_stats:', err);
         handleFirestoreError(err, OperationType.WRITE, 'stats/global_stats');
@@ -643,7 +1385,10 @@ export const initializeDatabase = async (): Promise<boolean> => {
     // 5. Check to seed Truck Profile
     let profileDoc;
     try {
-      profileDoc = await getDoc(doc(db, 'truck_profiles', 'default_profile'));
+      profileDoc = await perfMonitor.measureQuery(
+        'getDoc:truck_profiles/default_profile',
+        () => getDoc(doc(db, 'truck_profiles', 'default_profile'))
+      );
     } catch (err) {
       console.error('Error reading truck_profiles/default_profile:', err);
       handleFirestoreError(err, OperationType.GET, 'truck_profiles/default_profile');
@@ -652,7 +1397,11 @@ export const initializeDatabase = async (): Promise<boolean> => {
     if (profileDoc && !profileDoc.exists()) {
       console.log('Seeding default truck profile...');
       try {
-        await setDoc(doc(db, 'truck_profiles', 'default_profile'), INITIAL_TRUCK_PROFILE);
+        await perfMonitor.measureQuery(
+          'seed:truck_profiles/default_profile',
+          () => setDoc(doc(db, 'truck_profiles', 'default_profile'), INITIAL_TRUCK_PROFILE),
+          { type: 'mutation' }
+        );
       } catch (err) {
         console.error('Error writing truck_profiles/default_profile:', err);
         handleFirestoreError(err, OperationType.WRITE, 'truck_profiles/default_profile');
@@ -662,7 +1411,10 @@ export const initializeDatabase = async (): Promise<boolean> => {
     // 6. Check to seed Sellers
     let sellersSnap;
     try {
-      sellersSnap = await getDocs(collection(db, 'sellers'));
+      sellersSnap = await perfMonitor.measureQuery(
+        'getDocs:sellers',
+        () => getDocs(collection(db, 'sellers'))
+      );
     } catch (err) {
       console.error('Error reading sellers collection:', err);
       handleFirestoreError(err, OperationType.GET, 'sellers');
@@ -672,7 +1424,11 @@ export const initializeDatabase = async (): Promise<boolean> => {
       console.log('Database empty! Seeding INITIAL_SELLERS...');
       for (const seller of INITIAL_SELLERS) {
         try {
-          await setDoc(doc(db, 'sellers', seller.id), seller);
+          await perfMonitor.measureQuery(
+            `seed:sellers/${seller.id}`,
+            () => setDoc(doc(db, 'sellers', seller.id), seller),
+            { type: 'mutation' }
+          );
         } catch (err) {
           console.error(`Error writing seller ${seller.id}:`, err);
           handleFirestoreError(err, OperationType.WRITE, `sellers/${seller.id}`);
@@ -683,7 +1439,10 @@ export const initializeDatabase = async (): Promise<boolean> => {
     // 7. Check to seed Reviews
     let reviewsSnap;
     try {
-      reviewsSnap = await getDocs(collection(db, 'reviews'));
+      reviewsSnap = await perfMonitor.measureQuery(
+        'getDocs:reviews',
+        () => getDocs(collection(db, 'reviews'))
+      );
     } catch (err) {
       console.error('Error reading reviews collection:', err);
       handleFirestoreError(err, OperationType.GET, 'reviews');
@@ -693,10 +1452,42 @@ export const initializeDatabase = async (): Promise<boolean> => {
       console.log('Database empty! Seeding INITIAL_REVIEWS...');
       for (const rev of INITIAL_REVIEWS) {
         try {
-          await setDoc(doc(db, 'reviews', rev.id), rev);
+          await perfMonitor.measureQuery(
+            `seed:reviews/${rev.id}`,
+            () => setDoc(doc(db, 'reviews', rev.id), rev),
+            { type: 'mutation' }
+          );
         } catch (err) {
           console.error(`Error writing review ${rev.id}:`, err);
           handleFirestoreError(err, OperationType.WRITE, `reviews/${rev.id}`);
+        }
+      }
+    }
+
+    // 8. Check to seed SOS Requests
+    let sosSnap;
+    try {
+      sosSnap = await perfMonitor.measureQuery(
+        'getDocs:sos_requests',
+        () => getDocs(collection(db, 'sos_requests'))
+      );
+    } catch (err) {
+      console.error('Error reading sos_requests collection:', err);
+      handleFirestoreError(err, OperationType.GET, 'sos_requests');
+    }
+
+    if (sosSnap && sosSnap.empty) {
+      console.log('Database empty! Seeding INITIAL_SOS_REQUESTS...');
+      for (const req of INITIAL_SOS_REQUESTS) {
+        try {
+          await perfMonitor.measureQuery(
+            `seed:sos_requests/${req.id}`,
+            () => setDoc(doc(db, 'sos_requests', req.id), req),
+            { type: 'mutation' }
+          );
+        } catch (err) {
+          console.error(`Error writing sos_request ${req.id}:`, err);
+          handleFirestoreError(err, OperationType.WRITE, `sos_requests/${req.id}`);
         }
       }
     }
@@ -705,10 +1496,6 @@ export const initializeDatabase = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error('Failed to initialize database: ', error);
-    // Let the inner exceptions throw their specific JSON paths, otherwise default to this:
-    if (error instanceof Error && error.message.startsWith('{')) {
-      throw error;
-    }
     try {
       handleFirestoreError(error, OperationType.WRITE, 'initial_seeding');
     } catch {}
@@ -719,7 +1506,11 @@ export const initializeDatabase = async (): Promise<boolean> => {
 // Firestore deletion handler for the catalog management view
 export const deleteCatalogItemFromDB = async (itemId: string): Promise<void> => {
   try {
-    await deleteDoc(doc(db, 'catalog', itemId));
+    await perfMonitor.measureQuery(
+      `deleteDoc:catalog/${itemId}`,
+      () => deleteDoc(doc(db, 'catalog', itemId)),
+      { type: 'mutation' }
+    );
     // Update local cache too
     const current = loadCatalogItems().filter(i => i.id !== itemId);
     setStorageItem('catalog', current);
@@ -730,7 +1521,11 @@ export const deleteCatalogItemFromDB = async (itemId: string): Promise<void> => 
 
 export const deleteSOSRequestFromDB = async (requestId: string): Promise<void> => {
   try {
-    await deleteDoc(doc(db, 'sos_requests', requestId));
+    await perfMonitor.measureQuery(
+      `deleteDoc:sos_requests/${requestId}`,
+      () => deleteDoc(doc(db, 'sos_requests', requestId)),
+      { type: 'mutation' }
+    );
     // Update local cache too
     const current = loadSOSRequests().filter(r => r.id !== requestId);
     setStorageItem('sos_requests', current);
@@ -795,5 +1590,11 @@ export const deleteUserAccountFromDB = async (nameOrId: string, role: 'trucker' 
     throw error;
   }
 };
+
+// Re-export pagination utilities for convenient access
+export { fetchPaginatedSuppliers, fetchPaginatedCatalog } from './services/firestorePagination';
+export type { SupplierPaginationOptions, CatalogPaginationOptions, PaginatedResult } from './services/firestorePagination';
+export { indexAdvisor, RECOMMENDED_INDEXES } from './services/indexAdvisor';
+
 
 

@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   TrendingUp, Users, ShoppingBag, DollarSign, Plus, Trash2, 
   Settings, MessageSquare, Send, CheckCircle2, AlertCircle, ShoppingCart, 
   Store, ToggleLeft, ToggleRight, Phone, ShieldCheck, RefreshCw, Layers, Crown,
-  Calendar, ArrowUpRight, BarChart2, Download, Award, Search, HelpCircle, User, Star
+  Calendar, ArrowUpRight, BarChart2, Download, Award, Search, HelpCircle, User, Star, Flame
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Supplier, CatalogItem, Chat, Message, OrderStats, Seller, Review } from '../types';
@@ -19,6 +19,8 @@ import { generateSupplierAnalyticsPDF } from '../analyticsPdfGenerator';
 import BusinessPlanView from './BusinessPlanView';
 import { generateBusinessPlanPDF } from '../pdfGenerator';
 import ImperioLogo from './ImperioLogo';
+import { useRenderProfiler, perfMonitor, FastSearchIndex } from '../services/perfMonitor';
+import SOSDistressVisualization from './SOSDistressVisualization';
 
 interface SupplierDashboardProps {
   companyName: string;
@@ -106,12 +108,13 @@ export default function SupplierDashboard({
   googleToken = null,
   onDeleteAccount
 }: SupplierDashboardProps) {
+  useRenderProfiler('SupplierDashboard');
   // Find which supplier corresponds to this login session or use a default one like Tietê s1
   const [vendorSupplier, setVendorSupplier] = useState<Supplier | null>(null);
 
   // States
   const [stats, setStats] = useState<OrderStats>({ views: 842, clicks: 147, quotesCount: 34, salesClosed: 19 });
-  const [activeTab, setActiveTab] = useState<'painel' | 'catalogo' | 'chats' | 'plano' | 'vendedores' | 'ranking'>('painel');
+  const [activeTab, setActiveTab] = useState<'painel' | 'catalogo' | 'chats' | 'plano' | 'vendedores' | 'ranking' | 'sos_analytics'>('painel');
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [typedMessage, setTypedMessage] = useState('');
@@ -332,35 +335,41 @@ export default function SupplierDashboard({
     setChats(loadChats());
     setStats(loadStats());
 
-    // Live sync dashboard metrics (stats)
+    // Live sync dashboard metrics (stats) with performance monitoring
     const unsubStats = onSnapshot(doc(db, 'stats', 'global_stats'), (snapshot) => {
-      if (snapshot.exists()) {
-        setStats(snapshot.data() as OrderStats);
-      }
+      perfMonitor.measureSnapshotProcessing('SupplierDashboard:onSnapshot:stats', () => {
+        if (snapshot.exists()) {
+          setStats(snapshot.data() as OrderStats);
+        }
+      }, 1);
     }, (err) => {
       console.warn('Stats sync error: ', err);
     });
 
-    // Live sync active supplier chats
+    // Live sync active supplier chats with performance monitoring
     const unsubChats = onSnapshot(collection(db, 'chats'), (snapshot) => {
-      const list: Chat[] = [];
-      snapshot.forEach(docSnap => {
-        list.push(docSnap.data() as Chat);
-      });
-      if (list.length > 0) {
-        setChats(list);
-      }
+      perfMonitor.measureSnapshotProcessing('SupplierDashboard:onSnapshot:chats', () => {
+        const list: Chat[] = [];
+        snapshot.forEach(docSnap => {
+          list.push(docSnap.data() as Chat);
+        });
+        if (list.length > 0) {
+          setChats(list);
+        }
+      }, snapshot.size);
     }, (err) => {
       console.warn('Chats sync error: ', err);
     });
 
-    // Live sync active sellers
+    // Live sync active sellers with performance monitoring
     const unsubSellers = onSnapshot(collection(db, 'sellers'), (snapshot) => {
-      const list: Seller[] = [];
-      snapshot.forEach(docSnap => {
-        list.push(docSnap.data() as Seller);
-      });
-      setSellers(list);
+      perfMonitor.measureSnapshotProcessing('SupplierDashboard:onSnapshot:sellers', () => {
+        const list: Seller[] = [];
+        snapshot.forEach(docSnap => {
+          list.push(docSnap.data() as Seller);
+        });
+        setSellers(list);
+      }, snapshot.size);
     }, (err) => {
       console.warn('Sellers sync error: ', err);
     });
@@ -403,7 +412,11 @@ export default function SupplierDashboard({
     };
 
     try {
-      await setDoc(doc(db, 'sellers', newS.id), newS);
+      await perfMonitor.measureQuery(
+        `setDoc:sellers/${newS.id}`,
+        () => setDoc(doc(db, 'sellers', newS.id), newS),
+        { type: 'mutation' }
+      );
       setNewSellerName('');
       setNewSellerEmail('');
       setNewSellerPhone('');
@@ -414,17 +427,20 @@ export default function SupplierDashboard({
 
   const handleToggleSellerAuth = async (sellerId: string, currentStatus: boolean) => {
     try {
-      await updateDoc(doc(db, 'sellers', sellerId), {
-        isAuthorized: !currentStatus
-      });
+      await perfMonitor.measureQuery(
+        `updateDoc:sellers/${sellerId}`,
+        () => updateDoc(doc(db, 'sellers', sellerId), { isAuthorized: !currentStatus }),
+        { type: 'mutation' }
+      );
     } catch (err) {
       // Fallback
       const sellerToUpdate = sellers.find(s => s.id === sellerId);
       if (sellerToUpdate) {
-        await setDoc(doc(db, 'sellers', sellerId), {
-          ...sellerToUpdate,
-          isAuthorized: !currentStatus
-        });
+        await perfMonitor.measureQuery(
+          `setDocFallback:sellers/${sellerId}`,
+          () => setDoc(doc(db, 'sellers', sellerId), { ...sellerToUpdate, isAuthorized: !currentStatus }),
+          { type: 'mutation' }
+        );
       }
     }
   };
@@ -432,7 +448,11 @@ export default function SupplierDashboard({
   const handleDeleteSeller = async (sellerId: string) => {
     if (confirm('Tem certeza que deseja desvincular e excluir este vendedor?')) {
       try {
-        await deleteDoc(doc(db, 'sellers', sellerId));
+        await perfMonitor.measureQuery(
+          `deleteDoc:sellers/${sellerId}`,
+          () => deleteDoc(doc(db, 'sellers', sellerId)),
+          { type: 'mutation' }
+        );
       } catch (err) {
         console.error('Delete seller error: ', err);
       }
@@ -536,10 +556,25 @@ export default function SupplierDashboard({
 
   const activeChat = chats.find(c => c.id === activeChatId);
 
-  // Filter components belonging strictly to this supplier session and matching the current niche
-  const supplierCatalogItems = vendorSupplier 
-    ? catalogItems.filter(item => item.supplierId === vendorSupplier.id && (!item.niche || item.niche === niche))
-    : [];
+  // Filter components belonging strictly to this supplier session and matching the current niche (Memoized)
+  const supplierCatalogItems = useMemo(() => {
+    if (!vendorSupplier) return [];
+    return catalogItems.filter(item => item.supplierId === vendorSupplier.id && (!item.niche || item.niche === niche));
+  }, [catalogItems, vendorSupplier, niche]);
+
+  // Catalog Pagination States for optimal performance with large inventory
+  const [catalogPage, setCatalogPage] = useState<number>(1);
+  const [catalogPageSize, setCatalogPageSize] = useState<number>(10);
+
+  useEffect(() => {
+    setCatalogPage(1);
+  }, [vendorSupplier?.id, niche]);
+
+  const totalCatalogPages = Math.max(1, Math.ceil(supplierCatalogItems.length / catalogPageSize));
+  const paginatedSupplierCatalogItems = useMemo(() => {
+    const start = (catalogPage - 1) * catalogPageSize;
+    return supplierCatalogItems.slice(start, start + catalogPageSize);
+  }, [supplierCatalogItems, catalogPage, catalogPageSize]);
 
   return (
     <div id="supplier-dashboard-panel" className="bg-[#121212] text-slate-100 flex flex-col min-h-screen selection:bg-[#FF8C00] selection:text-black font-sans">
@@ -601,6 +636,7 @@ export default function SupplierDashboard({
          <div className="flex bg-[#1E1E1E] p-1.5 rounded-xl border border-neutral-800 mb-6 shrink-0 overflow-x-auto no-scrollbar" id="supplier-tabs-wrap">
           {[
             { id: 'painel', label: 'Painel & Métricas', icon: <TrendingUp className="w-4 h-4" /> },
+            { id: 'sos_analytics', label: 'Plantão SOS (D3)', icon: <Flame className="w-4 h-4 text-red-500 fill-red-500/20" /> },
             ...(!isSeller ? [{ id: 'catalogo', label: 'Gerenciar Catálogo', icon: <Layers className="w-4 h-4" /> }] : []),
             { id: 'chats', label: `Chats Ativos (${chats.length})`, icon: <MessageSquare className="w-4 h-4" /> },
             { id: 'ranking', label: 'Ranking Geral', icon: <Crown className="w-4 h-4 text-amber-400 fill-amber-400/10 animate-pulse" /> },
@@ -987,6 +1023,11 @@ export default function SupplierDashboard({
                   </div>
                 );
               })()}
+            </div>
+
+            {/* D3 Data Visualization: Frequency of SOS Calls Over Time & Workforce Planning */}
+            <div id="dashboard-sos-d3-analytics-container" className="pt-2">
+              <SOSDistressVisualization supplier={vendorSupplier} companyName={companyName} />
             </div>
 
             {/* B2C Dynamic Conversion Funnel Analysis */}
@@ -1382,6 +1423,13 @@ export default function SupplierDashboard({
           </div>
         )}
 
+        {/* Dedicated SOS Calls & Workforce Planning Tab (D3) */}
+        {activeTab === 'sos_analytics' && (
+          <div className="space-y-6 animate-fadeIn" id="dedicated-sos-analytics-tab">
+            <SOSDistressVisualization supplier={vendorSupplier} companyName={companyName} />
+          </div>
+        )}
+
         {/* Catalog Manager Tab */}
         {activeTab === 'catalogo' && (
           <div className="space-y-4" id="supplier-catalog-tab">
@@ -1607,43 +1655,88 @@ export default function SupplierDashboard({
                   <p className="text-slate-500 text-[10px]">Utilize o botão acima para carregar o seu primeiro item de vitrine.</p>
                 </div>
               ) : (
-                supplierCatalogItems.map(item => (
-                  <div key={item.id} className="p-3.5 bg-[#141414] border border-slate-800 rounded-xl flex items-center justify-between gap-4">
-                    <div className="flex items-start space-x-3 truncate">
-                      <span className="text-2xl p-2 bg-[#1C1C1C] rounded-lg shrink-0">{item.image}</span>
-                      <div className="truncate">
-                        <h4 className="font-extrabold text-white text-xs md:text-sm truncate leading-snug">{item.title}</h4>
-                        <p className="text-[10px] text-slate-500 mt-0.5 truncate uppercase">SKU: {item.code} | Filtro: {item.compatibleWith}</p>
-                        <span className="text-sm font-black text-orange-500 block mt-1">R$ {item.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                        
-                        {/* Display thumbnails of uploaded photos */}
-                        {item.photos && item.photos.length > 0 && (
-                          <div className="flex items-center space-x-1.5 mt-2.5">
-                            <span className="text-[9px] text-slate-500 uppercase font-black mr-0.5">Fotos:</span>
-                            {item.photos.map((photo, pIdx) => (
-                              <div key={pIdx} className="w-9 h-9 rounded-lg border border-neutral-800 overflow-hidden shrink-0 bg-neutral-900">
-                                <img 
-                                  src={photo} 
-                                  alt={`Miniature ${pIdx + 1}`} 
-                                  className="w-full h-full object-cover"
-                                  referrerPolicy="no-referrer"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                <>
+                  {paginatedSupplierCatalogItems.map(item => (
+                    <div key={item.id} className="p-3.5 bg-[#141414] border border-slate-800 rounded-xl flex items-center justify-between gap-4">
+                      <div className="flex items-start space-x-3 truncate">
+                        <span className="text-2xl p-2 bg-[#1C1C1C] rounded-lg shrink-0">{item.image}</span>
+                        <div className="truncate">
+                          <h4 className="font-extrabold text-white text-xs md:text-sm truncate leading-snug">{item.title}</h4>
+                          <p className="text-[10px] text-slate-500 mt-0.5 truncate uppercase">SKU: {item.code} | Filtro: {item.compatibleWith}</p>
+                          <span className="text-sm font-black text-orange-500 block mt-1">R$ {item.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                          
+                          {/* Display thumbnails of uploaded photos */}
+                          {item.photos && item.photos.length > 0 && (
+                            <div className="flex items-center space-x-1.5 mt-2.5">
+                              <span className="text-[9px] text-slate-500 uppercase font-black mr-0.5">Fotos:</span>
+                              {item.photos.map((photo, pIdx) => (
+                                <div key={pIdx} className="w-9 h-9 rounded-lg border border-neutral-800 overflow-hidden shrink-0 bg-neutral-900">
+                                  <img 
+                                    src={photo} 
+                                    alt={`Miniature ${pIdx + 1}`} 
+                                    className="w-full h-full object-cover"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        id={`delete-item-${item.id}`}
+                        onClick={() => handleDeleteCatalogItem(item.id)}
+                        className="p-3 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-xl transition-all cursor-pointer border border-transparent hover:border-red-500/10"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {/* Pagination Controls */}
+                  {totalCatalogPages > 1 && (
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-neutral-800 bg-[#161616] p-3 rounded-xl">
+                      <div className="flex items-center gap-2 text-xs text-slate-400">
+                        <span>Página <strong className="text-white">{catalogPage}</strong> de <strong className="text-white">{totalCatalogPages}</strong></span>
+                        <span className="text-slate-600">•</span>
+                        <span>Total: <strong className="text-[#FF8C00]">{supplierCatalogItems.length}</strong> itens</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={catalogPageSize}
+                          onChange={(e) => {
+                            setCatalogPageSize(Number(e.target.value));
+                            setCatalogPage(1);
+                          }}
+                          className="bg-[#1F1F1F] border border-neutral-800 text-slate-300 text-xs rounded-lg px-2 py-1.5 outline-none cursor-pointer"
+                        >
+                          <option value={5}>5 por página</option>
+                          <option value={10}>10 por página</option>
+                          <option value={20}>20 por página</option>
+                        </select>
+
+                        <button
+                          type="button"
+                          disabled={catalogPage <= 1}
+                          onClick={() => setCatalogPage(p => Math.max(1, p - 1))}
+                          className="px-3 py-1.5 bg-[#1F1F1F] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-800 border border-neutral-800 text-slate-200 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                        >
+                          Anterior
+                        </button>
+                        <button
+                          type="button"
+                          disabled={catalogPage >= totalCatalogPages}
+                          onClick={() => setCatalogPage(p => Math.min(totalCatalogPages, p + 1))}
+                          className="px-3 py-1.5 bg-[#1F1F1F] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-neutral-800 border border-neutral-800 text-slate-200 text-xs font-bold rounded-lg transition-colors cursor-pointer"
+                        >
+                          Próxima
+                        </button>
                       </div>
                     </div>
-
-                    <button
-                      id={`delete-item-${item.id}`}
-                      onClick={() => handleDeleteCatalogItem(item.id)}
-                      className="p-3 hover:bg-red-500/10 text-slate-500 hover:text-red-500 rounded-xl transition-all cursor-pointer border border-transparent hover:border-red-500/10"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))
+                  )}
+                </>
               )}
             </div>
 

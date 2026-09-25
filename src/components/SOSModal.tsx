@@ -6,7 +6,8 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, MapPin, Navigation, Clock, MessageSquare, Phone, Send, X, ShieldAlert } from 'lucide-react';
 import { motion } from 'motion/react';
-import { Supplier } from '../types';
+import { Supplier, SOSRequest } from '../types';
+import { loadSOSRequests, saveSOSRequests } from '../mockData';
 
 interface SOSModalProps {
   onClose: () => void;
@@ -60,8 +61,31 @@ export default function SOSModal({ onClose, suppliers, truckerName, truckModel }
       }
 
       setMatchedSupplier(provider);
-      setEta(Math.floor(Math.random() * 15) + 12); // random eta between 12-27 mins
+      const calculatedEta = Math.floor(Math.random() * 15) + 12; // random eta between 12-27 mins
+      setEta(calculatedEta);
       setStage('connected');
+
+      // Persist SOS distress call to database
+      try {
+        const newReq: SOSRequest = {
+          id: `sos_${Date.now()}`,
+          type: selectedEmergency,
+          description: `Chamado SOS disparado por ${truckerName} na rodovia (${truckModel}).`,
+          status: 'accepted',
+          matchedSupplierId: provider.id,
+          matchedSupplierName: provider.name,
+          etaMinutes: calculatedEta,
+          timestamp: new Date().toISOString(),
+          highway: 'BR-116 (Dutra)',
+          driverName: truckerName,
+          truckModel: truckModel,
+          responseTimeMinutes: calculatedEta
+        };
+        const currentList = loadSOSRequests();
+        saveSOSRequests([newReq, ...currentList]);
+      } catch (err) {
+        console.warn('Failed to persist SOS call: ', err);
+      }
 
       // Add conversational ice-breaker messages
       setChatMessages([
