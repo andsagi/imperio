@@ -1,0 +1,7 @@
+# Robots.txt for Império - Peças, Serviços e SOS
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# Sitemaps
+Sitemap: https://imperiopecas.com.br/sitemap.xml

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Truck, Store, FileText, AlertTriangle, ChevronRight, HelpCircle, RefreshCw, LogOut, Crown, Car, Bike, Lock, Unlock, ShieldAlert, Check, X } from 'lucide-react';
+import { Truck, Store, FileText, AlertTriangle, ChevronRight, HelpCircle, RefreshCw, LogOut, Crown, Car, Bike, Lock, Unlock, ShieldAlert, Check, X, Share2, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 // Subcomponents import
@@ -16,6 +16,8 @@ import NicheSelector from './components/NicheSelector';
 import ImperioLogo from './components/ImperioLogo';
 import LegalConsentModal from './components/LegalConsentModal';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import ShareAndMonetizeModal from './components/ShareAndMonetizeModal';
+import SponsoredAdBanner from './components/SponsoredAdBanner';
 
 // Data layers
 import { Supplier, CatalogItem, Review } from './types';
@@ -41,6 +43,10 @@ export default function App() {
 
   // Informational footer modal states
   const [infoModalTab, setInfoModalTab] = useState<'about' | 'faq' | 'support' | null>(null);
+
+  // Viral share and aggressive monetization states
+  const [shareMonetizeOpen, setShareMonetizeOpen] = useState(false);
+  const [shareMonetizeTab, setShareMonetizeTab] = useState<'share' | 'monetize'>('share');
 
   // Compliance: Global state for terms/privacy modals after login
   const [globalLegalOpen, setGlobalLegalOpen] = useState(false);
@@ -376,6 +382,20 @@ export default function App() {
                     <Store className="w-3.5 h-3.5" />
                     <span>Ver Fornecedor</span>
                   </button>
+
+                  <button
+                    id="tab-share-monetize-btn"
+                    onClick={() => {
+                      setShareMonetizeTab('share');
+                      setShareMonetizeOpen(true);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg font-black flex items-center space-x-1.5 transition-all text-[11px] cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black shadow-md shadow-amber-500/10 active:scale-95"
+                    title="Divulgação Viral e Planos de Anúncio"
+                  >
+                    <Share2 className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Divulgar & Anunciar</span>
+                    <span className="sm:hidden">Divulgar</span>
+                  </button>
                 </>
               )}
 
@@ -441,8 +461,17 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1"
+              className="flex-1 flex flex-col"
             >
+              <div className="px-3 pt-3 max-w-4xl mx-auto w-full">
+                <SponsoredAdBanner
+                  niche={niche}
+                  onOpenMonetize={() => {
+                    setShareMonetizeTab('monetize');
+                    setShareMonetizeOpen(true);
+                  }}
+                />
+              </div>
               <TruckerHome 
                 userName={username}
                 userPhone={phone}
@@ -466,8 +495,17 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="flex-1"
+              className="flex-1 flex flex-col"
             >
+              <div className="px-3 pt-3 max-w-4xl mx-auto w-full">
+                <SponsoredAdBanner
+                  niche={niche}
+                  onOpenMonetize={() => {
+                    setShareMonetizeTab('monetize');
+                    setShareMonetizeOpen(true);
+                  }}
+                />
+              </div>
               <SupplierDashboard 
                 companyName={username}
                 cnpj={phone} // mock data cnpj mapped here
@@ -514,7 +552,29 @@ export default function App() {
       {/* Global Footer with Compliance and Admin Mode Access */}
       <footer id="global-imperio-footer" className="bg-[#151515] border-t border-neutral-850 py-6 px-4 shrink-0 text-center select-none mt-auto">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex flex-wrap justify-center gap-4 text-xs font-bold uppercase tracking-wider text-slate-400">
+          <div className="flex flex-wrap justify-center items-center gap-3.5 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <button
+              onClick={() => {
+                setShareMonetizeTab('share');
+                setShareMonetizeOpen(true);
+              }}
+              className="text-amber-500 hover:text-amber-400 transition-colors cursor-pointer flex items-center gap-1 font-black"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>Divulgação Viral</span>
+            </button>
+            <span className="text-neutral-800">|</span>
+            <button
+              onClick={() => {
+                setShareMonetizeTab('monetize');
+                setShareMonetizeOpen(true);
+              }}
+              className="text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer flex items-center gap-1 font-black"
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Planos de Anúncio</span>
+            </button>
+            <span className="text-neutral-800">|</span>
             <button
               onClick={() => setInfoModalTab('about')}
               className="hover:text-[#FF8C00] transition-colors cursor-pointer"
@@ -768,6 +828,14 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Aggressive Viral Sharing & Monetization modal */}
+      <ShareAndMonetizeModal
+        isOpen={shareMonetizeOpen}
+        onClose={() => setShareMonetizeOpen(false)}
+        defaultTab={shareMonetizeTab}
+        niche={niche}
+      />
 
       {/* Persistent floating PWA custom installer prompt */}
       <PWAInstallPrompt />
